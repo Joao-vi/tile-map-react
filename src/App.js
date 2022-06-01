@@ -39,7 +39,7 @@ function App() {
   const [selected, setSelected] = useState(pallet.colors[0].id);
 
   useEffect(() => {
-    fetchTiles().then((tiles) => (layers[1] = tiles));
+    fetchTiles().then((tiles) => (layers[1] = tiles.slice(0, 20)));
   }, []);
 
   return (

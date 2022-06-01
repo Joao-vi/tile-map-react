@@ -6,7 +6,8 @@ const Wrapper = styled.div`
   width: 100%;
   /* height: 500px; */
   height: 100%;
-  background-color: #9d9494;
+  /* background-color: #9d9494; */
+  background-color: #181818;
   overflow: hidden;
 
   &:focus-visible {
@@ -18,6 +19,7 @@ const Panzoom = styled.div``;
 
 const addTileColor = "#16db65";
 const removeTileColor = "#ef233c";
+const selectedBorder = "#13aa4f";
 const padding = 2;
 const tileSize = 32;
 
@@ -32,7 +34,7 @@ export const TileMap = (props) => {
       for (let j = 1; j <= 33; j++) {
         const tileNumber = (i - 1) * 33 + j;
         if (tileNumber <= 1000) {
-          ctx.current.fillStyle = "#cccccc";
+          ctx.current.fillStyle = "#3d3a46";
           ctx.current.fillRect(
             i * tileSize,
             j * tileSize,
@@ -57,23 +59,84 @@ export const TileMap = (props) => {
     ctx.current.closePath();
   };
 
-  const generateTiles = useCallback((layer) => {
-    layer.forEach(({ x, y, color }) => {
-      const hasSibilingX = layer?.some(
-        (tile) => tile.x === x - 1 && tile.y === y
+  const generateTiles = useCallback((layer, index) => {
+    layer.forEach(({ x, y, color, owner }) => {
+      const sameOwnerX = layer?.some(
+        (tile) => tile.x === x - 1 && tile.y === y && tile.owner === owner
       );
-      const hasSibilingY = layer?.some(
-        (tile) => tile.y === y - 1 && tile.x === x
+
+      const sameOwnerY = layer?.some(
+        (tile) => tile.y === y - 1 && tile.x === x && tile.owner === owner
       );
+
       ctx.current.fillStyle = color;
-      if (hasSibilingX && hasSibilingY) {
+
+      if (sameOwnerX && sameOwnerY) {
         paintTile({ x, px: 2, y, py: 2, wx: 0, hy: 0 });
-      } else if (hasSibilingX) {
+      } else if (sameOwnerX) {
         paintTile({ x, px: 2, y, wx: 0 });
-      } else if (hasSibilingY) {
+      } else if (sameOwnerY) {
         paintTile({ x, y, py: 2, hy: 0 });
       } else {
         paintTile({ x, y });
+      }
+
+      if (index === 2) {
+        const isTop = !layer?.some((tile) => tile.x === x && tile.y === y - 1);
+
+        const isLeft = !layer?.some((tile) => tile.x === x - 1 && tile.y === y);
+
+        const isBottom = !layer?.some(
+          (tile) => tile.x === x && tile.y === y + 1
+        );
+
+        const isRight = !layer?.some(
+          (tile) => tile.x === x + 1 && tile.y === y
+        );
+
+        if (isTop) {
+          ctx.current.strokeStyle = selectedBorder;
+          ctx.current.beginPath();
+          ctx.current.rect(x * tileSize - 1, y * tileSize, tileSize - 1, 1);
+          ctx.current.stroke();
+          ctx.current.closePath();
+        }
+
+        if (isLeft) {
+          ctx.current.beginPath();
+          ctx.current.rect(
+            x * tileSize - 1,
+            y * tileSize,
+            1,
+            tileSize - padding
+          );
+          ctx.current.stroke();
+          ctx.current.closePath();
+        }
+
+        if (isBottom) {
+          ctx.current.beginPath();
+          ctx.current.rect(
+            x * tileSize - 1,
+            y * tileSize + tileSize - 3,
+            tileSize - 1,
+            1
+          );
+          ctx.current.stroke();
+          ctx.current.closePath();
+        }
+
+        if (isRight) {
+          ctx.current.beginPath();
+          ctx.current.rect(
+            x * tileSize + tileSize - 3,
+            y * tileSize,
+            1,
+            tileSize - padding
+          );
+          ctx.current.stroke();
+          ctx.current.closePath();
+        }
       }
     });
   }, []);
@@ -85,7 +148,7 @@ export const TileMap = (props) => {
       if (index === 0) {
         generateBackground();
       } else {
-        generateTiles(layer);
+        generateTiles(layer, index);
       }
     });
   }, [generateBackground, generateTiles, layers]);
@@ -115,25 +178,20 @@ export const TileMap = (props) => {
   }, [draw]);
 
   useEffect(() => {
-    const changeCursorColor = (e) => {
-      if (e.shiftKey) {
-        ctx.current.strokeStyle = removeTileColor;
-      } else {
-        ctx.current.strokeStyle = addTileColor;
-      }
-
+    const changeCursor = (e) => {
       if (e.ctrlKey) {
         canvas.current.style.cursor = "grab";
       } else {
         canvas.current.style.cursor = "default";
       }
     };
-    window.addEventListener("keydown", changeCursorColor);
-    window.addEventListener("keyup", changeCursorColor);
+
+    window.addEventListener("keydown", changeCursor);
+    window.addEventListener("keyup", changeCursor);
 
     return () => {
-      window.removeEventListener("keydown", changeCursorColor);
-      window.removeEventListener("keyup", changeCursorColor);
+      window.removeEventListener("keydown", changeCursor);
+      window.removeEventListener("keyup", changeCursor);
     };
   }, []);
 
@@ -144,6 +202,7 @@ export const TileMap = (props) => {
 
       if (!!coord) {
         const [x, y] = coord;
+
         const shouldPaint = !layers[1].some(
           (tile) => tile.x === x && tile.y === y
         );
@@ -158,7 +217,6 @@ export const TileMap = (props) => {
               layers[2].push({ x, y, color: selectedColor });
             }
           }
-          console.log(layers[2]);
           draw();
         }
       }
@@ -169,13 +227,20 @@ export const TileMap = (props) => {
 
       if (!!coord) {
         const [x, y] = coord;
+
         draw();
+
+        if (e.shiftKey) {
+          ctx.current.strokeStyle = removeTileColor;
+        } else {
+          ctx.current.strokeStyle = addTileColor;
+        }
 
         ctx.current.fillStyle = "rgba(226, 224, 224, 0.2)";
         ctx.current.beginPath();
         ctx.current.rect(
-          x * tileSize,
-          y * tileSize,
+          x * tileSize - 1,
+          y * tileSize - 1,
           tileSize - padding,
           tileSize - padding
         );
@@ -207,6 +272,7 @@ export const TileMap = (props) => {
 
       hover(e);
     };
+
     canvasEl.addEventListener("mousedown", handleMouseDown);
 
     canvasEl.addEventListener("mouseup", handleMouseUp);
