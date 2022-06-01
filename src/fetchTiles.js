@@ -4,8 +4,8 @@ import { getColorByRarity } from "./helper";
 export const fetchTiles = async () => {
   const response = await rpc?.get_table_rows({
     json: true, // Get the response as json
-    code: "oliveland222", // Contract that we target
-    scope: "oliveland222", // Account that owns the data
+    code: "oliveland111", // Contract that we target
+    scope: "oliveland111", // Account that owns the data
     lower_bound: "",
     upper_bound: "",
     table: "coordinates", // Table name
@@ -18,6 +18,7 @@ export const fetchTiles = async () => {
     color: getColorByRarity(row.rarity),
     owner: row.user,
     x: row.x,
+    y: row.y,
   }));
 
   return fResponse;

@@ -28,17 +28,24 @@ const pallet = {
   ],
 };
 
+/*
+  1. Background.
+  2. Taken Tiles.
+  3. Tiles selected by user.
+*/
+let layers = [[], [], []];
+
 function App() {
   const [selected, setSelected] = useState(pallet.colors[0].id);
-  const [tiles, setTiles] = useState([]);
+
   useEffect(() => {
-    fetchTiles().then((tiles) => setTiles(tiles));
+    fetchTiles().then((tiles) => (layers[1] = tiles));
   }, []);
 
   return (
     <Wrapper>
       <Colors pallet={pallet} selected={selected} setSelected={setSelected} />
-      <TileMap tiles={tiles} selectedColor={selected} />
+      <TileMap layers={layers} selectedColor={selected} />
     </Wrapper>
   );
 }

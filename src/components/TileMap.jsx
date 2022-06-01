@@ -4,8 +4,8 @@ import styled from "styled-components";
 
 const Wrapper = styled.div`
   width: 100%;
-  height: 500px;
-
+  /* height: 500px; */
+  height: 100%;
   background-color: #9d9494;
   overflow: hidden;
 
@@ -21,17 +21,8 @@ const removeTileColor = "#ef233c";
 const padding = 2;
 const tileSize = 32;
 
-let layers = [
-  // bg-layer
-  [],
-  // blockchain layer
-  [],
-  // Selected user layer
-  [],
-];
-
 export const TileMap = (props) => {
-  const { selectedColor, tiles } = props;
+  const { selectedColor, layers } = props;
   const canvas = useRef(null);
   const ctx = useRef(null);
   const isMouseDown = useRef(false);
@@ -55,6 +46,7 @@ export const TileMap = (props) => {
 
   const paintTile = (props) => {
     const { x = 0, px = 0, y = 0, py = 0, wx = padding, hy = padding } = props;
+
     ctx.current.beginPath();
     ctx.current.fillRect(
       x * tileSize - px,
@@ -96,7 +88,7 @@ export const TileMap = (props) => {
         generateTiles(layer);
       }
     });
-  }, [generateBackground, generateTiles]);
+  }, [generateBackground, generateTiles, layers]);
 
   const getCoords = (e) => {
     const { x, y } = e.target.getBoundingClientRect();
@@ -109,10 +101,6 @@ export const TileMap = (props) => {
       ? null
       : [xCoord, yCoord];
   };
-
-  useEffect(() => {
-    layers[1] = tiles;
-  }, [tiles]);
 
   useEffect(() => {
     ctx.current = canvas.current.getContext("2d");
@@ -153,21 +141,26 @@ export const TileMap = (props) => {
     const canvasEl = canvas.current;
     const addTile = (e) => {
       var coord = getCoords(e);
+
       if (!!coord) {
         const [x, y] = coord;
-
-        if (e.shiftKey) {
-          const index = layers[2]?.findIndex(
-            (tile) => tile.x === x && tile.y === y
-          );
-          index !== -1 && layers[2]?.splice(index, 1);
-        } else {
-          if (!layers[2].some((tile) => tile.x === x && tile.y === y)) {
-            layers[2].push({ x, y, color: selectedColor });
+        const shouldPaint = !layers[1].some(
+          (tile) => tile.x === x && tile.y === y
+        );
+        if (shouldPaint) {
+          if (e.shiftKey) {
+            const index = layers[2]?.findIndex(
+              (tile) => tile.x === x && tile.y === y
+            );
+            index !== -1 && layers[2]?.splice(index, 1);
+          } else {
+            if (!layers[2].some((tile) => tile.x === x && tile.y === y)) {
+              layers[2].push({ x, y, color: selectedColor });
+            }
           }
+          console.log(layers[2]);
+          draw();
         }
-        console.log(layers[2]);
-        draw();
       }
     };
 
@@ -228,12 +221,15 @@ export const TileMap = (props) => {
       canvasEl.removeEventListener("mouseleave", handleMouseLeave);
       canvasEl.removeEventListener("mousemove", handleMouseMove);
     };
-  }, [canvas, draw, selectedColor]);
+  }, [canvas, draw, selectedColor, layers]);
 
   return (
     <Wrapper>
       <Panzoom>
-        <canvas ref={canvas}></canvas>
+        <canvas
+          style={{ margin: "0 auto", display: "block", width: "min-content" }}
+          ref={canvas}
+        ></canvas>
       </Panzoom>
     </Wrapper>
   );
