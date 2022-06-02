@@ -1,25 +1,40 @@
 import { rpc } from "./rpc";
 import { getColorByRarity } from "./helper";
 
+import { generateArray } from "./generateArray";
+
+import { pallet } from "./App";
+
 export const fetchTiles = async () => {
-  const response = await rpc?.get_table_rows({
-    json: true, // Get the response as json
-    code: "oliveland111", // Contract that we target
-    scope: "oliveland111", // Account that owns the data
-    lower_bound: "",
-    upper_bound: "",
-    table: "coordinates", // Table name
-    limit: 1000, // Maximum number of rows that we want to get
-    reverse: false, // Optional: Get reversed data
+  function getRandom(min, max) {
+    // min and max included
+    return Math.floor(Math.random() * (max - min + 1) + min);
+  }
+
+  const tiles = generateArray(50).map((tile, index) => {
+    const color = pallet.colors[getRandom(0, 4)].id;
+    return {
+      tile: tile + index,
+      color,
+    };
   });
 
-  const fResponse = response.rows.map((row) => ({
-    tile: row.x,
-    color: getColorByRarity(row.rarity),
-    owner: row.user,
-    x: row.x,
-    y: row.y,
-  }));
+  const fResponse = tiles.map(({ tile, color }) => {
+    const mapNumber = Math.floor(tile / 1000 - 0.0001);
+    const offSetTiles = mapNumber * 1000;
+
+    const x = Math.floor((tile - offSetTiles) / 33 - 0.01) + 1;
+    const y = tile - offSetTiles - (x - 1) * 33;
+
+    return {
+      tile: tile,
+      x: x,
+      y: y,
+      color,
+    };
+  });
+
+  console.log(fResponse);
 
   return fResponse;
 };
