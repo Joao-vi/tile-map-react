@@ -1,6 +1,3 @@
-import { rpc } from "./rpc";
-import { getColorByRarity } from "./helper";
-
 import { generateArray } from "./generateArray";
 
 import { pallet } from "./App";
