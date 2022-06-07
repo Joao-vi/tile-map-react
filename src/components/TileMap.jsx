@@ -21,14 +21,31 @@ const Wrapper = styled.div`
 
 const Panzoom = styled.div``;
 
-const addTileColor = "#16db65";
-const removeTileColor = "#ef233c";
+const addTileColor = "#2ee979";
+const removeTileColor = "#ea4b5d";
 const selectedBorder = "#13aa4f";
-const padding = 2;
 const tileSize = 32;
 
+const ground = new Image();
+ground.src = "/assets/tiles-map/ground.png";
+
+const tree1 = new Image();
+tree1.src = "/assets/tiles-map/tree-age-1.png";
+
+const tree2 = new Image();
+tree2.src = "/assets/tiles-map/tree-age-2.png";
+
+const tree3 = new Image();
+tree3.src = "/assets/tiles-map/tree-age-3.png";
+
+const tree = {
+  1: tree1,
+  2: tree2,
+  3: tree3,
+};
+
 export const TileMap = (props) => {
-  const { selectedColor, layers, handlePopup } = props;
+  const { selectedColor, layers, setPopup } = props;
   const canvas = useRef(null);
   const ctx = useRef(null);
   const isMouseDown = useRef(false);
@@ -40,52 +57,22 @@ export const TileMap = (props) => {
       for (let j = 1; j <= 33; j++) {
         const tileNumber = (i - 1) * 31 + j;
         if (tileNumber <= 1000) {
-          ctx.current.fillStyle = "#3d3a46";
-          ctx.current.fillRect(
-            i * tileSize,
-            j * tileSize,
-            tileSize - padding,
-            tileSize - padding
-          );
+          ctx.current.drawImage(ground, i * tileSize, j * tileSize);
         }
       }
     }
   }, []);
 
   const paintTile = (props) => {
-    const { x = 0, px = 0, y = 0, py = 0, wx = padding, hy = padding } = props;
+    const { x = 0, y = 0, age } = props;
 
-    ctx.current.beginPath();
-    ctx.current.fillRect(
-      x * tileSize - px,
-      y * tileSize - py,
-      tileSize - wx,
-      tileSize - hy
-    );
-    ctx.current.closePath();
+    const currentTree = tree[age];
+    ctx.current.drawImage(currentTree, x * 32, y * 32);
   };
 
   const generateTiles = useCallback((layer, index) => {
-    layer.forEach(({ x, y, color, owner }) => {
-      const sameOwnerX = layer?.some(
-        (tile) => tile.x === x - 1 && tile.y === y && tile.owner === owner
-      );
-
-      const sameOwnerY = layer?.some(
-        (tile) => tile.y === y - 1 && tile.x === x && tile.owner === owner
-      );
-
-      ctx.current.fillStyle = color;
-
-      if (sameOwnerX && sameOwnerY) {
-        paintTile({ x, px: 2, y, py: 2, wx: 0, hy: 0 });
-      } else if (sameOwnerX) {
-        paintTile({ x, px: 2, y, wx: 0 });
-      } else if (sameOwnerY) {
-        paintTile({ x, y, py: 2, hy: 0 });
-      } else {
-        paintTile({ x, y });
-      }
+    layer.forEach(({ x, y, age }) => {
+      paintTile({ x, y, age });
 
       if (index === 2) {
         const isTop = !layer?.some((tile) => tile.x === x && tile.y === y - 1);
@@ -103,43 +90,28 @@ export const TileMap = (props) => {
         ctx.current.strokeStyle = selectedBorder;
         if (isTop) {
           ctx.current.beginPath();
-          ctx.current.rect(x * tileSize - 1, y * tileSize, tileSize - 1, 1);
+          ctx.current.rect(x * tileSize, y * tileSize, tileSize, 1);
           ctx.current.stroke();
           ctx.current.closePath();
         }
 
         if (isLeft) {
           ctx.current.beginPath();
-          ctx.current.rect(
-            x * tileSize - 1,
-            y * tileSize,
-            1,
-            tileSize - padding
-          );
+          ctx.current.rect(x * tileSize, y * tileSize, 1, tileSize);
           ctx.current.stroke();
           ctx.current.closePath();
         }
 
         if (isBottom) {
           ctx.current.beginPath();
-          ctx.current.rect(
-            x * tileSize - 1,
-            y * tileSize + tileSize - 3,
-            tileSize - 1,
-            1
-          );
+          ctx.current.rect(x * tileSize, y * tileSize + tileSize, tileSize, 1);
           ctx.current.stroke();
           ctx.current.closePath();
         }
 
         if (isRight) {
           ctx.current.beginPath();
-          ctx.current.rect(
-            x * tileSize + tileSize - 3,
-            y * tileSize,
-            1,
-            tileSize - padding
-          );
+          ctx.current.rect(x * tileSize + tileSize, y * tileSize, 1, tileSize);
           ctx.current.stroke();
           ctx.current.closePath();
         }
@@ -166,13 +138,14 @@ export const TileMap = (props) => {
     const xCoord = Math.floor(mouseX / tileSize);
     const yCoord = Math.floor(mouseY / tileSize);
 
-    return xCoord <= 0 ||
+    const isOutside =
+      xCoord <= 0 ||
+      xCoord > 33 ||
       yCoord > 33 ||
       yCoord <= 0 ||
-      xCoord > 33 ||
-      (xCoord >= 33 && yCoord >= 9)
-      ? null
-      : [xCoord, yCoord];
+      (xCoord >= 33 && yCoord >= 9);
+
+    return isOutside ? null : { xCoord, yCoord };
   };
 
   useEffect(() => {
@@ -184,7 +157,6 @@ export const TileMap = (props) => {
         minZoom: 1,
         beforeWheel: () => true,
         beforeMouseDown: (e) => {
-          // allow wheel-zoom only if altKey is down. Otherwise - ignore
           var shouldIgnore = !e.ctrlKey;
           return shouldIgnore;
         },
@@ -200,8 +172,8 @@ export const TileMap = (props) => {
         offsetMap.current = { top: y, left: x };
         if (x < maxPanX) {
           e.moveTo(maxPanX, y);
-        } else if (x > 5) {
-          e.moveTo(5, y);
+        } else if (x > 0) {
+          e.moveTo(0, y);
         }
 
         if (y < -600) {
@@ -221,7 +193,6 @@ export const TileMap = (props) => {
     ctx.current.lineJoin = "round";
     ctx.current.lineWidth = 4;
     ctx.current.strokeStyle = addTileColor;
-
     draw();
   }, [draw]);
 
@@ -245,11 +216,52 @@ export const TileMap = (props) => {
 
   useEffect(() => {
     const canvasEl = canvas.current;
+    const popup = {
+      isOpen: false,
+      lastCoord: null,
+    };
+
+    const handleCallPopup = (e) => {
+      if (e.ctrlKey || e.shiftKey) {
+        return;
+      }
+
+      popup.isOpen = true;
+      let coords = getCoords(e);
+
+      if (!!coords) {
+        const { xCoord, yCoord } = coords;
+        popup.lastCoord = {
+          x: xCoord,
+          y: yCoord,
+        };
+        const tile = (xCoord - 1) * 31 + yCoord;
+
+        const top = yCoord * 32 + offsetMap.current.top + 20;
+        const left = xCoord * 32 + offsetMap.current.left + 20;
+
+        const hoveredTile =
+          layers[2].find((tile) => tile.x === xCoord && tile.y === yCoord) ||
+          layers[1].find((tile) => tile.x === xCoord && tile.y === yCoord);
+
+        setPopup({
+          isOpen: popup.isOpen,
+          top,
+          left,
+          tileNumber: tile,
+          age: hoveredTile?.age,
+        });
+      } else {
+        popup.isOpen = false;
+      }
+    };
+    const handleShowPopup = debounce(handleCallPopup, 500);
 
     const addTile = (x, y, shiftKey) => {
       const shouldPaint = !layers[1].some(
         (tile) => tile.x === x && tile.y === y
       );
+
       if (shouldPaint) {
         if (shiftKey) {
           const index = layers[2]?.findIndex(
@@ -258,8 +270,8 @@ export const TileMap = (props) => {
           index !== -1 && layers[2]?.splice(index, 1);
         } else {
           if (!layers[2].some((tile) => tile.x === x && tile.y === y)) {
-            const tileNumber = (x - 1) * 31 + y;
-            layers[2].push({ tileNumber, x, y, color: selectedColor });
+            const tile = (x - 1) * 31 + y;
+            layers[2].push({ tile, x, y, age: selectedColor });
           }
         }
         draw();
@@ -275,14 +287,9 @@ export const TileMap = (props) => {
         ctx.current.strokeStyle = addTileColor;
       }
 
-      ctx.current.fillStyle = "rgba(226, 224, 224, 0.2)";
+      ctx.current.fillStyle = "rgba(226, 224, 224, 0.144)";
       ctx.current.beginPath();
-      ctx.current.rect(
-        x * tileSize - 1,
-        y * tileSize - 1,
-        tileSize - padding,
-        tileSize - padding
-      );
+      ctx.current.rect(x * tileSize, y * tileSize, tileSize, tileSize);
       ctx.current.stroke();
       ctx.current.fill();
       ctx.current.closePath();
@@ -290,11 +297,12 @@ export const TileMap = (props) => {
 
     const handleMouseDown = (e) => {
       if (!e.ctrlKey) {
-        const [x, y] = getCoords(e);
+        const { xCoord, yCoord } = getCoords(e);
         const shiftKey = e.shiftKey;
-        addTile(x, y, shiftKey);
+        addTile(xCoord, yCoord, shiftKey);
         isMouseDown.current = true;
       }
+
       if (e.ctrlKey) canvasEl.style.cursor = "grabbing";
     };
 
@@ -303,47 +311,34 @@ export const TileMap = (props) => {
       if (e.ctrlKey) canvasEl.style.cursor = "grab";
     };
 
-    const handleMouseLeave = () => (isMouseDown.current = false);
-
-    let isOpen = false;
-    let lastCoord = null;
+    const handleMouseLeave = (e) => {
+      isMouseDown.current = false;
+      popup.isOpen = false;
+      setPopup({ isOpen: popup.isOpen });
+      handleShowPopup.cancel();
+      draw();
+    };
 
     const handleMouseMove = (e) => {
       var coord = getCoords(e);
       var shiftKey = e.shiftKey;
 
       if (!!coord) {
-        const [x, y] = coord;
+        const { xCoord, yCoord } = coord;
 
-        if (isOpen && (lastCoord[0] !== x || lastCoord[1] !== y)) {
-          isOpen = false;
-          handlePopup({ isOpen });
+        if (
+          popup.isOpen &&
+          (popup.lastCoord.x !== xCoord || popup.lastCoord.y !== yCoord)
+        ) {
+          popup.isOpen = false;
+          setPopup({ isOpen: popup.isOpen });
         }
 
         if (isMouseDown.current) {
-          addTile(x, y, shiftKey);
+          addTile(xCoord, yCoord, shiftKey);
         }
 
-        hover(x, y, shiftKey);
-      }
-    };
-
-    const handleCallPopup = (e) => {
-      isOpen = true;
-      let coords = getCoords(e);
-      if (!!coords) {
-        const [x, y] = coords;
-        lastCoord = [x, y];
-
-        const top = y * 32 + offsetMap.current.top + 20;
-        const left = x * 32 + offsetMap.current.left + 20;
-        handlePopup({
-          isOpen,
-          x,
-          y,
-          top,
-          left,
-        });
+        hover(xCoord, yCoord, shiftKey);
       }
     };
 
@@ -353,7 +348,7 @@ export const TileMap = (props) => {
 
     canvasEl.addEventListener("mouseleave", handleMouseLeave);
 
-    canvasEl.addEventListener("mousemove", debounce(handleCallPopup, 500));
+    canvasEl.addEventListener("mousemove", handleShowPopup);
     canvasEl.addEventListener("mousemove", handleMouseMove);
 
     return () => {
@@ -362,7 +357,7 @@ export const TileMap = (props) => {
       canvasEl.removeEventListener("mouseleave", handleMouseLeave);
       canvasEl.removeEventListener("mousemove", handleMouseMove);
     };
-  }, [canvas, draw, selectedColor, layers, handlePopup]);
+  }, [canvas, draw, selectedColor, layers, setPopup]);
 
   return (
     <Wrapper>

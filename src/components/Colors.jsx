@@ -8,50 +8,27 @@ const Wrapper = styled.ul`
   list-style: none;
 `;
 
-const Color = styled.label`
-  cursor: pointer;
-  width: 40px;
-  height: 40px;
-
-  border-radius: 10px;
-
-  opacity: 0.5;
-
-  transition: all 300ms ease;
-  &:hover {
-    opacity: 1;
-  }
-
-  > input {
-    display: none;
-  }
+const Tree = styled.img`
+  width: 32px;
+  height: 32px;
 `;
 
 export const Colors = (props) => {
-  const { selected, setSelected, pallet } = props;
+  const { setSelected } = props;
   return (
     <Wrapper onChange={(e) => setSelected(e.target.id)}>
-      {pallet.colors.map(({ id }) => {
-        const isChecked = id === selected;
-        return (
-          <Color
-            key={id}
-            htmlFor={id}
-            style={{
-              backgroundColor: id,
-              border: isChecked ? "1px solid #eeee" : "",
-              opacity: isChecked ? 1 : 0.5,
-            }}
-          >
-            <input
-              type="radio"
-              id={id}
-              name={pallet.name}
-              checked={isChecked}
-            />
-          </Color>
-        );
-      })}
+      <Tree
+        src="/assets/tiles-map/tree-age-1.png"
+        onClick={() => setSelected(1)}
+      />
+      <Tree
+        src="/assets/tiles-map/tree-age-2.png"
+        onClick={() => setSelected(2)}
+      />
+      <Tree
+        src="/assets/tiles-map/tree-age-3.png"
+        onClick={() => setSelected(3)}
+      />
     </Wrapper>
   );
 };

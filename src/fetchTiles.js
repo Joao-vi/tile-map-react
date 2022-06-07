@@ -8,15 +8,15 @@ export const fetchTiles = async () => {
     return Math.floor(Math.random() * (max - min + 1) + min);
   }
 
-  const tiles = generateArray(50).map((tile, index) => {
-    const color = pallet.colors[getRandom(0, 4)].id;
+  const tiles = generateArray(900).map((tile, index) => {
+    const age = getRandom(1, 3);
     return {
-      tile: tile + index,
-      color,
+      tile: tile,
+      age,
     };
   });
 
-  const fResponse = tiles.map(({ tile, color }) => {
+  const fResponse = tiles.map(({ tile, age }) => {
     const mapNumber = Math.floor(tile / 1000 - 0.0001);
     const offSetTiles = mapNumber * 1000;
 
@@ -27,7 +27,7 @@ export const fetchTiles = async () => {
       tile: tile,
       x: x,
       y: y,
-      color,
+      age,
     };
   });
 

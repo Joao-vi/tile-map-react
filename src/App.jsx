@@ -69,23 +69,23 @@ const Popup = styled.div`
 `;
 
 function App() {
-  const [selected, setSelected] = useState(pallet.colors[0].id);
+  const [selected, setSelected] = useState(1);
 
   const [popup, setPopup] = useState({
-    x: null,
-    y: null,
     isOpen: false,
     top: null,
     left: null,
+    tileNumber: null,
+    age: null,
   });
 
   useEffect(() => {
     fetchTiles().then((tiles) => (layers[1] = tiles));
   }, []);
 
-  const handlePopup = useCallback(
-    ({ isOpen, x = 0, y = 0, top = 0, left = 0 }) => {
-      setPopup({ isOpen, x, y, top, left });
+  const handleSetPopup = useCallback(
+    ({ isOpen, top = 0, left = 0, age, tileNumber }) => {
+      setPopup({ isOpen, top, left, age, tileNumber });
     },
     []
   );
@@ -110,17 +110,20 @@ function App() {
             }}
           >
             <span>
-              x: <span>{popup.x}</span>
+              Tile Number: <span>{popup.tileNumber}</span>
             </span>
-            <span>
-              y: <span>{popup.y}</span>
-            </span>
+
+            {!!popup.age && (
+              <span>
+                age: <span>{popup.age}</span>
+              </span>
+            )}
           </Popup>
         )}
         <TileMap
           layers={layers}
           selectedColor={selected}
-          handlePopup={handlePopup}
+          setPopup={handleSetPopup}
         />
       </div>
     </Wrapper>
