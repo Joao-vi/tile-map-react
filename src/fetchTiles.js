@@ -1,7 +1,5 @@
 import { generateArray } from "./generateArray";
 
-import { pallet } from "./App";
-
 export const fetchTiles = async () => {
   function getRandom(min, max) {
     // min and max included
