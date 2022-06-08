@@ -18,8 +18,8 @@ export const fetchTiles = async () => {
     const mapNumber = Math.floor(tile / 1000 - 0.0001);
     const offSetTiles = mapNumber * 1000;
 
-    const x = Math.floor((tile - offSetTiles) / 33 - 0.01) + 1;
-    const y = tile - offSetTiles - (x - 1) * 33;
+    const x = Math.floor((tile - offSetTiles) / 40 - 0.01) + 1;
+    const y = tile - offSetTiles - (x - 1) * 25;
 
     return {
       tile: tile,
@@ -29,7 +29,6 @@ export const fetchTiles = async () => {
     };
   });
 
-  await new Promise((resolve) => setTimeout(resolve, [5000]));
-  console.log("Foi");
+  console.log(fResponse);
   return fResponse;
 };

@@ -22,25 +22,28 @@ const Wrapper = styled.div`
 const Panzoom = styled.div``;
 
 const map = {
-  width: 1344,
-  height: 864,
+  width: 1408,
+  height: 928,
   tileSize: 32,
   addColor: "#2ee979",
   removeColor: "#ea4b5d",
   selectColor: "#13aa4f",
 };
 
+const background = new Image();
+background.src = "/assets/test/background.png";
+
 const ground = new Image();
-ground.src = "/assets/tiles-map/ground.png";
+ground.src = "/assets/test/ground.png";
 
 const tree1 = new Image();
-tree1.src = "/assets/tiles-map/tree-age-1.png";
+tree1.src = "/assets/test/tree-age-1.png";
 
 const tree2 = new Image();
-tree2.src = "/assets/tiles-map/tree-age-2.png";
+tree2.src = "/assets/test/tree-age-2.png";
 
 const tree3 = new Image();
-tree3.src = "/assets/tiles-map/tree-age-3.png";
+tree3.src = "/assets/test/tree-age-3.png";
 
 const tree = {
   1: tree1,
@@ -57,11 +60,7 @@ export const TileMap = (props) => {
   const offsetMap = useRef({ top: 0, left: 0 });
 
   const generateBackground = useCallback(() => {
-    for (let i = 1; i <= 40; i++) {
-      for (let j = 1; j <= 25; j++) {
-        ctx.current.drawImage(ground, i * 32, j * 32);
-      }
-    }
+    ctx.current.drawImage(background, 0, 0, map.width, map.height);
   }, []);
 
   const paintTile = (props) => {
@@ -149,7 +148,7 @@ export const TileMap = (props) => {
     const xCoord = Math.floor(mouseX / map.tileSize);
     const yCoord = Math.floor(mouseY / map.tileSize);
 
-    if (xCoord <= 0 || xCoord >= 41 || yCoord <= 0 || yCoord >= 26) {
+    if (xCoord <= 1 || xCoord >= 42 || yCoord <= 1 || yCoord >= 27) {
       return null;
     }
 
@@ -173,7 +172,7 @@ export const TileMap = (props) => {
 
       const offSetCanvas = map.width - window.innerWidth + 32;
       const maxPanX = offSetCanvas < 0 ? 0 : offSetCanvas * -1;
-
+      const maxPanY = (map.height - 500) * -1;
       instance.on("pan", function (e) {
         const { x, y } = e.getTransform();
 
@@ -184,8 +183,8 @@ export const TileMap = (props) => {
           e.moveTo(0, y);
         }
 
-        if (y < -364) {
-          e.moveTo(x, -364);
+        if (y < maxPanY) {
+          e.moveTo(x, maxPanY);
         } else if (y > 5) {
           e.moveTo(x, 5);
         }
@@ -199,10 +198,10 @@ export const TileMap = (props) => {
     canvas.current.width = map.width;
     canvas.current.height = map.height;
     ctx.current.lineJoin = "round";
-    ctx.current.lineWidth = 4;
+    ctx.current.lineWidth = 2;
     ctx.current.strokeStyle = map.addColor;
 
-    ground.onload = () => draw();
+    background.onload = () => draw();
   }, [draw]);
 
   useEffect(() => {
@@ -249,7 +248,7 @@ export const TileMap = (props) => {
           y: yCoord,
         };
 
-        const tile = (yCoord - 1) * 40 + xCoord;
+        const tile = (yCoord - 2) * 40 + xCoord - 1;
 
         const top = yCoord * 32 + offsetMap.current.top + 20;
         const left = xCoord * 32 + offsetMap.current.left + 20;
