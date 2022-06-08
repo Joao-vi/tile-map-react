@@ -248,7 +248,7 @@ export const TileMap = (props) => {
           y: yCoord,
         };
 
-        const tile = (yCoord - 2) * 40 + xCoord - 1;
+        const tileNumber = (yCoord - 2) * 40 + xCoord - 1;
 
         const top = yCoord * 32 + offsetMap.current.top + 20;
         const left = xCoord * 32 + offsetMap.current.left + 20;
@@ -261,7 +261,7 @@ export const TileMap = (props) => {
           isOpen: popup.isOpen,
           top,
           left,
-          tileNumber: tile,
+          tileNumber: hoveredTile?.tileNumber || tileNumber,
           age: hoveredTile?.age,
         });
       } else {
@@ -283,8 +283,8 @@ export const TileMap = (props) => {
           index !== -1 && layers[2]?.splice(index, 1);
         } else {
           if (!layers[2].some((tile) => tile.x === x && tile.y === y)) {
-            const tile = (x - 1) * 31 + y;
-            layers[2].push({ tile, x, y, age: selectedColor });
+            const tileNumber = (y - 2) * 40 + x - 1;
+            layers[2].push({ tileNumber, x, y, age: selectedColor });
           }
         }
         draw();

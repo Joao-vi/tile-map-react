@@ -14,17 +14,24 @@ export const fetchTiles = async () => {
     };
   });
 
+  /*
+    First tile X: 2 and Y: 2
+    last tile x: 41 and Y: 26
+  */
   const fResponse = tiles.map(({ tile, age }) => {
     const mapNumber = Math.floor(tile / 1000 - 0.0001);
     const offSetTiles = mapNumber * 1000;
 
-    const x = Math.floor((tile - offSetTiles) / 40 - 0.01) + 1;
-    const y = tile - offSetTiles - (x - 1) * 25;
+    // const x = Math.floor((tile - offSetTiles) / 40 - 0.01) + 2;
+    // const y = tile - offSetTiles - (x - 2) * 25 + 1;
+
+    const x = Math.floor(tile / 40 - 0.01) + 2;
+    const y = tile - (x - 2) * 40 + 1;
 
     return {
-      tile: tile,
-      x: x,
-      y: y,
+      tileNumber: tile,
+      x: y,
+      y: x,
       age,
     };
   });
