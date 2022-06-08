@@ -40,9 +40,9 @@ export const pallet = {
 };
 
 /*
-  1. Background.
-  2. Taken Tiles.
-  3. Tiles selected by user.
+  0. Background.
+  1. Taken Tiles.
+  2. Tiles selected by user.
 */
 let layers = [[], [], []];
 
@@ -70,6 +70,7 @@ const Popup = styled.div`
 
 function App() {
   const [selected, setSelected] = useState(1);
+  const [isFetching, setIsFecthing] = useState(false);
 
   const [popup, setPopup] = useState({
     isOpen: false,
@@ -80,7 +81,11 @@ function App() {
   });
 
   useEffect(() => {
-    fetchTiles().then((tiles) => (layers[1] = tiles));
+    setIsFecthing(true);
+    fetchTiles().then((tiles) => {
+      setIsFecthing(false);
+      return (layers[1] = tiles);
+    });
   }, []);
 
   const handleSetPopup = useCallback(
@@ -93,6 +98,7 @@ function App() {
   return (
     <Wrapper>
       <Colors pallet={pallet} selected={selected} setSelected={setSelected} />
+
       <Instructions>
         <span>
           Hold <span className="key">CTRL</span> to move map.
@@ -101,6 +107,7 @@ function App() {
           Hold <span className="key">Shift</span> to delete a tile.
         </span>
       </Instructions>
+
       <div style={{ position: "relative" }}>
         {popup.isOpen && (
           <Popup
@@ -121,6 +128,7 @@ function App() {
           </Popup>
         )}
         <TileMap
+          isFetching={isFetching}
           layers={layers}
           selectedColor={selected}
           setPopup={handleSetPopup}

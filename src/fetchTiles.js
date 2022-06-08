@@ -29,7 +29,7 @@ export const fetchTiles = async () => {
     };
   });
 
-  console.log(fResponse);
-
+  await new Promise((resolve) => setTimeout(resolve, [5000]));
+  console.log("Foi");
   return fResponse;
 };

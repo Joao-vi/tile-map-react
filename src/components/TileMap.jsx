@@ -45,7 +45,7 @@ const tree = {
 };
 
 export const TileMap = (props) => {
-  const { selectedColor, layers, setPopup } = props;
+  const { selectedColor, layers, setPopup, isFetching } = props;
   const canvas = useRef(null);
   const ctx = useRef(null);
   const isMouseDown = useRef(false);
@@ -193,8 +193,14 @@ export const TileMap = (props) => {
     ctx.current.lineJoin = "round";
     ctx.current.lineWidth = 4;
     ctx.current.strokeStyle = addTileColor;
-    draw();
+
+    ground.onload = () => draw();
   }, [draw]);
+
+  useEffect(() => {
+    draw();
+    console.log("Effect");
+  }, [isFetching, draw]);
 
   useEffect(() => {
     const changeCursor = (e) => {
