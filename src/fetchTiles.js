@@ -25,8 +25,8 @@ export const fetchTiles = async () => {
     // const x = Math.floor((tile - offSetTiles) / 40 - 0.01) + 2;
     // const y = tile - offSetTiles - (x - 2) * 25 + 1;
 
-    const x = Math.floor(tile / 40 - 0.01) + 2;
-    const y = tile - (x - 2) * 40 + 1;
+    const x = Math.floor((tile - offSetTiles) / 40 - 0.01) + 2;
+    const y = tile - offSetTiles - (x - 2) * 40 + 1;
 
     return {
       tileNumber: tile,

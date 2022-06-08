@@ -3,7 +3,7 @@ import { useRef } from "react";
 import styled from "styled-components";
 
 import panzoom from "panzoom";
-import { debounce, throttle } from "lodash";
+import { debounce } from "lodash";
 
 const Wrapper = styled.div`
   width: 100%;
