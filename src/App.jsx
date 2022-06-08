@@ -81,11 +81,11 @@ function App() {
   });
 
   useEffect(() => {
-    setIsFecthing(true);
-    fetchTiles().then((tiles) => {
-      setIsFecthing(false);
-      return (layers[1] = tiles);
-    });
+    // setIsFecthing(true);
+    // fetchTiles().then((tiles) => {
+    //   setIsFecthing(false);
+    //   return (layers[1] = tiles);
+    // });
   }, []);
 
   const handleSetPopup = useCallback(

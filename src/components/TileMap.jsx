@@ -3,7 +3,7 @@ import { useRef } from "react";
 import styled from "styled-components";
 
 import panzoom from "panzoom";
-import { debounce } from "lodash";
+import { debounce, throttle } from "lodash";
 
 const Wrapper = styled.div`
   width: 100%;
@@ -21,10 +21,14 @@ const Wrapper = styled.div`
 
 const Panzoom = styled.div``;
 
-const addTileColor = "#2ee979";
-const removeTileColor = "#ea4b5d";
-const selectedBorder = "#13aa4f";
-const tileSize = 32;
+const map = {
+  width: 1344,
+  height: 864,
+  tileSize: 32,
+  addColor: "#2ee979",
+  removeColor: "#ea4b5d",
+  selectColor: "#13aa4f",
+};
 
 const ground = new Image();
 ground.src = "/assets/tiles-map/ground.png";
@@ -53,12 +57,9 @@ export const TileMap = (props) => {
   const offsetMap = useRef({ top: 0, left: 0 });
 
   const generateBackground = useCallback(() => {
-    for (let i = 1; i <= 33; i++) {
-      for (let j = 1; j <= 33; j++) {
-        const tileNumber = (i - 1) * 31 + j;
-        if (tileNumber <= 1000) {
-          ctx.current.drawImage(ground, i * tileSize, j * tileSize);
-        }
+    for (let i = 1; i <= 40; i++) {
+      for (let j = 1; j <= 25; j++) {
+        ctx.current.drawImage(ground, i * 32, j * 32);
       }
     }
   }, []);
@@ -87,31 +88,41 @@ export const TileMap = (props) => {
           (tile) => tile.x === x + 1 && tile.y === y
         );
 
-        ctx.current.strokeStyle = selectedBorder;
+        ctx.current.strokeStyle = map.selectColor;
         if (isTop) {
           ctx.current.beginPath();
-          ctx.current.rect(x * tileSize, y * tileSize, tileSize, 1);
+          ctx.current.rect(x * map.tileSize, y * map.tileSize, map.tileSize, 1);
           ctx.current.stroke();
           ctx.current.closePath();
         }
 
         if (isLeft) {
           ctx.current.beginPath();
-          ctx.current.rect(x * tileSize, y * tileSize, 1, tileSize);
+          ctx.current.rect(x * map.tileSize, y * map.tileSize, 1, map.tileSize);
           ctx.current.stroke();
           ctx.current.closePath();
         }
 
         if (isBottom) {
           ctx.current.beginPath();
-          ctx.current.rect(x * tileSize, y * tileSize + tileSize, tileSize, 1);
+          ctx.current.rect(
+            x * map.tileSize,
+            y * map.tileSize + map.tileSize,
+            map.tileSize,
+            1
+          );
           ctx.current.stroke();
           ctx.current.closePath();
         }
 
         if (isRight) {
           ctx.current.beginPath();
-          ctx.current.rect(x * tileSize + tileSize, y * tileSize, 1, tileSize);
+          ctx.current.rect(
+            x * map.tileSize + map.tileSize,
+            y * map.tileSize,
+            1,
+            map.tileSize
+          );
           ctx.current.stroke();
           ctx.current.closePath();
         }
@@ -135,17 +146,14 @@ export const TileMap = (props) => {
     const { x, y } = e.target.getBoundingClientRect();
     const mouseX = e.clientX - x;
     const mouseY = e.clientY - y;
-    const xCoord = Math.floor(mouseX / tileSize);
-    const yCoord = Math.floor(mouseY / tileSize);
+    const xCoord = Math.floor(mouseX / map.tileSize);
+    const yCoord = Math.floor(mouseY / map.tileSize);
 
-    const isOutside =
-      xCoord <= 0 ||
-      xCoord > 33 ||
-      yCoord > 33 ||
-      yCoord <= 0 ||
-      (xCoord >= 33 && yCoord >= 9);
+    if (xCoord <= 0 || xCoord >= 41 || yCoord <= 0 || yCoord >= 26) {
+      return null;
+    }
 
-    return isOutside ? null : { xCoord, yCoord };
+    return { xCoord, yCoord };
   };
 
   useEffect(() => {
@@ -163,7 +171,7 @@ export const TileMap = (props) => {
         filterKey: () => true,
       });
 
-      const offSetCanvas = 1024 - window.innerWidth + 32;
+      const offSetCanvas = map.width - window.innerWidth + 32;
       const maxPanX = offSetCanvas < 0 ? 0 : offSetCanvas * -1;
 
       instance.on("pan", function (e) {
@@ -176,8 +184,8 @@ export const TileMap = (props) => {
           e.moveTo(0, y);
         }
 
-        if (y < -600) {
-          e.moveTo(x, -600);
+        if (y < -364) {
+          e.moveTo(x, -364);
         } else if (y > 5) {
           e.moveTo(x, 5);
         }
@@ -188,11 +196,11 @@ export const TileMap = (props) => {
   useEffect(() => {
     ctx.current = canvas.current.getContext("2d");
 
-    canvas.current.width = 1096;
-    canvas.current.height = 1096;
+    canvas.current.width = map.width;
+    canvas.current.height = map.height;
     ctx.current.lineJoin = "round";
     ctx.current.lineWidth = 4;
-    ctx.current.strokeStyle = addTileColor;
+    ctx.current.strokeStyle = map.addColor;
 
     ground.onload = () => draw();
   }, [draw]);
@@ -213,7 +221,6 @@ export const TileMap = (props) => {
 
     window.addEventListener("keydown", changeCursor);
     window.addEventListener("keyup", changeCursor);
-
     return () => {
       window.removeEventListener("keydown", changeCursor);
       window.removeEventListener("keyup", changeCursor);
@@ -228,7 +235,7 @@ export const TileMap = (props) => {
     };
 
     const handleCallPopup = (e) => {
-      if (e.ctrlKey || e.shiftKey) {
+      if (e.ctrlKey || e.shiftKey || isMouseDown.current) {
         return;
       }
 
@@ -241,7 +248,8 @@ export const TileMap = (props) => {
           x: xCoord,
           y: yCoord,
         };
-        const tile = (xCoord - 1) * 31 + yCoord;
+
+        const tile = (yCoord - 1) * 40 + xCoord;
 
         const top = yCoord * 32 + offsetMap.current.top + 20;
         const left = xCoord * 32 + offsetMap.current.left + 20;
@@ -288,14 +296,19 @@ export const TileMap = (props) => {
       draw();
 
       if (shiftKey) {
-        ctx.current.strokeStyle = removeTileColor;
+        ctx.current.strokeStyle = map.removeColor;
       } else {
-        ctx.current.strokeStyle = addTileColor;
+        ctx.current.strokeStyle = map.addColor;
       }
 
       ctx.current.fillStyle = "rgba(226, 224, 224, 0.144)";
       ctx.current.beginPath();
-      ctx.current.rect(x * tileSize, y * tileSize, tileSize, tileSize);
+      ctx.current.rect(
+        x * map.tileSize,
+        y * map.tileSize,
+        map.tileSize,
+        map.tileSize
+      );
       ctx.current.stroke();
       ctx.current.fill();
       ctx.current.closePath();
@@ -338,6 +351,7 @@ export const TileMap = (props) => {
         ) {
           popup.isOpen = false;
           setPopup({ isOpen: popup.isOpen });
+          handleShowPopup.cancel();
         }
 
         if (isMouseDown.current) {
@@ -371,7 +385,7 @@ export const TileMap = (props) => {
         <canvas
           style={{
             position: "relative",
-            margin: "0 auto",
+            // margin: "0 auto",
             display: "block",
             width: "min-content",
           }}
