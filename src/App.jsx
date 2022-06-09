@@ -108,7 +108,12 @@ function App() {
         </span>
       </Instructions>
 
-      <div style={{ position: "relative" }}>
+      <TileMap
+        isFetching={isFetching}
+        layers={layers}
+        selectedColor={selected}
+        setPopup={handleSetPopup}
+      >
         {popup.isOpen && (
           <Popup
             style={{
@@ -127,13 +132,7 @@ function App() {
             )}
           </Popup>
         )}
-        <TileMap
-          isFetching={isFetching}
-          layers={layers}
-          selectedColor={selected}
-          setPopup={handleSetPopup}
-        />
-      </div>
+      </TileMap>
     </Wrapper>
   );
 }

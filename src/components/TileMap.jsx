@@ -6,6 +6,8 @@ import panzoom from "panzoom";
 import { debounce } from "lodash";
 
 const Wrapper = styled.div`
+  position: relative;
+  max-width: 1408px;
   width: 100%;
   height: 500px;
 
@@ -52,12 +54,14 @@ const tree = {
 };
 
 export const TileMap = (props) => {
-  const { selectedColor, layers, setPopup, isFetching } = props;
+  const { selectedColor, layers, setPopup, isFetching, children } = props;
   const canvas = useRef(null);
   const ctx = useRef(null);
   const isMouseDown = useRef(false);
   const [elPanzoom, setElPanzoom] = useState(null);
+  const panzoomInstance = useRef(null);
   const offsetMap = useRef({ top: 0, left: 0 });
+  const isAdding = useRef(true);
 
   const generateBackground = useCallback(() => {
     ctx.current.drawImage(background, 0, 0, map.width, map.height);
@@ -170,10 +174,13 @@ export const TileMap = (props) => {
         filterKey: () => true,
       });
 
-      const offSetCanvas = map.width - window.innerWidth + 32;
-      const maxPanX = offSetCanvas < 0 ? 0 : offSetCanvas * -1;
-      const maxPanY = (map.height - 500) * -1;
+      panzoomInstance.current = instance;
+
       instance.on("pan", function (e) {
+        const offSetCanvas = map.width - window.innerWidth + 32 - 20;
+        const maxPanX = offSetCanvas < 0 ? 0 : offSetCanvas * -1;
+        const maxPanY = (map.height - 500) * -1;
+
         const { x, y } = e.getTransform();
 
         offsetMap.current = { top: y, left: x };
@@ -185,8 +192,8 @@ export const TileMap = (props) => {
 
         if (y < maxPanY) {
           e.moveTo(x, maxPanY);
-        } else if (y > 5) {
-          e.moveTo(x, 5);
+        } else if (y > 0) {
+          e.moveTo(x, 0);
         }
       });
     }
@@ -206,7 +213,6 @@ export const TileMap = (props) => {
 
   useEffect(() => {
     draw();
-    console.log("Effect");
   }, [isFetching, draw]);
 
   useEffect(() => {
@@ -216,6 +222,7 @@ export const TileMap = (props) => {
       } else {
         canvas.current.style.cursor = "default";
       }
+      isAdding.current = !e.shiftKey;
     };
 
     window.addEventListener("keydown", changeCursor);
@@ -270,34 +277,34 @@ export const TileMap = (props) => {
     };
     const handleShowPopup = debounce(handleCallPopup, 500);
 
-    const addTile = (x, y, shiftKey) => {
+    const addTile = (x, y) => {
       const shouldPaint = !layers[1].some(
         (tile) => tile.x === x && tile.y === y
       );
 
       if (shouldPaint) {
-        if (shiftKey) {
-          const index = layers[2]?.findIndex(
-            (tile) => tile.x === x && tile.y === y
-          );
-          index !== -1 && layers[2]?.splice(index, 1);
-        } else {
+        if (isAdding.current) {
           if (!layers[2].some((tile) => tile.x === x && tile.y === y)) {
             const tileNumber = (y - 2) * 40 + x - 1;
             layers[2].push({ tileNumber, x, y, age: selectedColor });
           }
+        } else {
+          const index = layers[2]?.findIndex(
+            (tile) => tile.x === x && tile.y === y
+          );
+          index !== -1 && layers[2]?.splice(index, 1);
         }
         draw();
       }
     };
 
-    const hover = (x, y, shiftKey) => {
+    const hover = (x, y) => {
       draw();
 
-      if (shiftKey) {
-        ctx.current.strokeStyle = map.removeColor;
-      } else {
+      if (isAdding.current) {
         ctx.current.strokeStyle = map.addColor;
+      } else {
+        ctx.current.strokeStyle = map.removeColor;
       }
 
       ctx.current.fillStyle = "rgba(226, 224, 224, 0.144)";
@@ -332,14 +339,13 @@ export const TileMap = (props) => {
     const handleMouseLeave = (e) => {
       isMouseDown.current = false;
       popup.isOpen = false;
-      setPopup({ isOpen: popup.isOpen });
       handleShowPopup.cancel();
+      setPopup({ isOpen: popup.isOpen });
       draw();
     };
 
     const handleMouseMove = (e) => {
       var coord = getCoords(e);
-      var shiftKey = e.shiftKey;
 
       if (!!coord) {
         const { xCoord, yCoord } = coord;
@@ -354,10 +360,10 @@ export const TileMap = (props) => {
         }
 
         if (isMouseDown.current) {
-          addTile(xCoord, yCoord, shiftKey);
+          addTile(xCoord, yCoord);
         }
 
-        hover(xCoord, yCoord, shiftKey);
+        hover(xCoord, yCoord);
       }
     };
 
@@ -379,18 +385,29 @@ export const TileMap = (props) => {
   }, [canvas, draw, selectedColor, layers, setPopup]);
 
   return (
-    <Wrapper>
-      <Panzoom ref={setElPanzoom}>
-        <canvas
-          style={{
-            position: "relative",
-            // margin: "0 auto",
-            display: "block",
-            width: "min-content",
-          }}
-          ref={canvas}
-        ></canvas>
-      </Panzoom>
-    </Wrapper>
+    <div style={{ width: "100%", padding: "0 10px" }}>
+      <button onClick={() => panzoomInstance.current?.pause()}>
+        Disable panning
+      </button>
+      <button onClick={() => panzoomInstance.current?.resume()}>
+        Enable panning
+      </button>
+
+      <button onClick={() => (isAdding.current = true)}>Add Tile</button>
+      <button onClick={() => (isAdding.current = false)}>Delete Tile</button>
+      <Wrapper>
+        {children}
+        <Panzoom ref={setElPanzoom}>
+          <canvas
+            style={{
+              position: "relative",
+              display: "block",
+              width: "min-content",
+            }}
+            ref={canvas}
+          ></canvas>
+        </Panzoom>
+      </Wrapper>
+    </div>
   );
 };
