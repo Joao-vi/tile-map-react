@@ -11,6 +11,8 @@ const Wrapper = styled.div`
   width: 100%;
   height: 500px;
 
+  margin: 0 auto;
+
   background-color: #201c1c;
   overflow: hidden;
 
@@ -395,6 +397,7 @@ export const TileMap = (props) => {
 
       <button onClick={() => (isAdding.current = true)}>Add Tile</button>
       <button onClick={() => (isAdding.current = false)}>Delete Tile</button>
+
       <Wrapper>
         {children}
         <Panzoom ref={setElPanzoom}>
