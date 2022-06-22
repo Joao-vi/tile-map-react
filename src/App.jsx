@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import React from "react";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
 
-import { Colors } from "./components/Colors";
+import { Trees } from "./components/Trees";
 import { TileMap } from "./components/TileMap";
 
 import { fetchTiles } from "./fetchTiles";
@@ -28,22 +29,12 @@ export const Instructions = styled.div`
   }
 `;
 
-export const pallet = {
-  name: "pallet-colors",
-  colors: [
-    { id: "#264653" },
-    { id: "#2a9d8f" },
-    { id: "#e9c46a" },
-    { id: "#f4a261" },
-    { id: "#e76f51" },
-  ],
-};
-
 /*
   0. Background.
   1. Taken Tiles.
   2. Tiles selected by user.
 */
+
 let layers = [[], [], []];
 
 const Popup = styled.div`
@@ -74,10 +65,6 @@ function App() {
 
   const [popup, setPopup] = useState({
     isOpen: false,
-    top: null,
-    left: null,
-    tileNumber: null,
-    age: null,
   });
 
   useEffect(() => {
@@ -88,16 +75,9 @@ function App() {
     });
   }, []);
 
-  const handleSetPopup = useCallback(
-    ({ isOpen, top = 0, left = 0, age, tileNumber }) => {
-      setPopup({ isOpen, top, left, age, tileNumber });
-    },
-    []
-  );
-
   return (
     <Wrapper>
-      <Colors pallet={pallet} selected={selected} setSelected={setSelected} />
+      <Trees selected={selected} setSelected={setSelected} />
 
       <Instructions>
         <span>
@@ -112,7 +92,7 @@ function App() {
         isFetching={isFetching}
         layers={layers}
         selectedColor={selected}
-        setPopup={handleSetPopup}
+        setPopup={setPopup}
       >
         {popup.isOpen && (
           <Popup

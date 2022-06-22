@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
-import { useRef } from "react";
+import { useCallback, useEffect } from "react";
 import styled from "styled-components";
 
 import panzoom from "panzoom";
-import { debounce } from "lodash";
+import debounce from "lodash/debounce";
 
 const Wrapper = styled.div`
   position: relative;
@@ -24,6 +23,17 @@ const Wrapper = styled.div`
 `;
 
 const Panzoom = styled.div``;
+
+const Actions = styled.div`
+  width: 100%;
+  display: flex;
+  gap: 10px;
+  justify-items: center;
+
+  > button {
+    all: none;
+  }
+`;
 
 const map = {
   width: 1408,
@@ -55,25 +65,28 @@ const tree = {
   3: tree3,
 };
 
+let canvas;
+let ctx;
+let isMouseDown = false;
+let offsetMap = {
+  top: 0,
+  left: 0,
+};
+let isAdding = true;
+let panzoomInstance;
+
 export const TileMap = (props) => {
   const { selectedColor, layers, setPopup, isFetching, children } = props;
-  const canvas = useRef(null);
-  const ctx = useRef(null);
-  const isMouseDown = useRef(false);
-  const [elPanzoom, setElPanzoom] = useState(null);
-  const panzoomInstance = useRef(null);
-  const offsetMap = useRef({ top: 0, left: 0 });
-  const isAdding = useRef(true);
 
   const generateBackground = useCallback(() => {
-    ctx.current.drawImage(background, 0, 0, map.width, map.height);
+    ctx.drawImage(background, 0, 0, map.width, map.height);
   }, []);
 
   const paintTile = (props) => {
     const { x = 0, y = 0, age } = props;
 
     const currentTree = tree[age];
-    ctx.current.drawImage(currentTree, x * 32, y * 32);
+    ctx.drawImage(currentTree, x * 32, y * 32);
   };
 
   const generateTiles = useCallback((layer, index) => {
@@ -93,50 +106,50 @@ export const TileMap = (props) => {
           (tile) => tile.x === x + 1 && tile.y === y
         );
 
-        ctx.current.strokeStyle = map.selectColor;
+        ctx.strokeStyle = map.selectColor;
         if (isTop) {
-          ctx.current.beginPath();
-          ctx.current.rect(x * map.tileSize, y * map.tileSize, map.tileSize, 1);
-          ctx.current.stroke();
-          ctx.current.closePath();
+          ctx.beginPath();
+          ctx.rect(x * map.tileSize, y * map.tileSize, map.tileSize, 1);
+          ctx.stroke();
+          ctx.closePath();
         }
 
         if (isLeft) {
-          ctx.current.beginPath();
-          ctx.current.rect(x * map.tileSize, y * map.tileSize, 1, map.tileSize);
-          ctx.current.stroke();
-          ctx.current.closePath();
+          ctx.beginPath();
+          ctx.rect(x * map.tileSize, y * map.tileSize, 1, map.tileSize);
+          ctx.stroke();
+          ctx.closePath();
         }
 
         if (isBottom) {
-          ctx.current.beginPath();
-          ctx.current.rect(
+          ctx.beginPath();
+          ctx.rect(
             x * map.tileSize,
             y * map.tileSize + map.tileSize,
             map.tileSize,
             1
           );
-          ctx.current.stroke();
-          ctx.current.closePath();
+          ctx.stroke();
+          ctx.closePath();
         }
 
         if (isRight) {
-          ctx.current.beginPath();
-          ctx.current.rect(
+          ctx.beginPath();
+          ctx.rect(
             x * map.tileSize + map.tileSize,
             y * map.tileSize,
             1,
             map.tileSize
           );
-          ctx.current.stroke();
-          ctx.current.closePath();
+          ctx.stroke();
+          ctx.closePath();
         }
       }
     });
   }, []);
 
   const draw = useCallback(() => {
-    ctx.current.clearRect(0, 0, canvas.current.width, canvas.current.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     layers.forEach((layer, index) => {
       if (index === 0) {
@@ -162,53 +175,59 @@ export const TileMap = (props) => {
   };
 
   useEffect(() => {
-    if (!!elPanzoom) {
-      const instance = panzoom(elPanzoom, {
-        zoomDoubleClickSpeed: 1,
-        smoothScroll: false,
-        maxZoom: 1,
-        minZoom: 1,
-        beforeWheel: () => true,
-        beforeMouseDown: (e) => {
-          var shouldIgnore = !e.ctrlKey;
-          return shouldIgnore;
-        },
-        filterKey: () => true,
-      });
-
-      panzoomInstance.current = instance;
-
-      instance.on("pan", function (e) {
-        const offSetCanvas = map.width - window.innerWidth + 32 - 20;
-        const maxPanX = offSetCanvas < 0 ? 0 : offSetCanvas * -1;
-        const maxPanY = (map.height - 500) * -1;
-
-        const { x, y } = e.getTransform();
-
-        offsetMap.current = { top: y, left: x };
-        if (x < maxPanX) {
-          e.moveTo(maxPanX, y);
-        } else if (x > 0) {
-          e.moveTo(0, y);
-        }
-
-        if (y < maxPanY) {
-          e.moveTo(x, maxPanY);
-        } else if (y > 0) {
-          e.moveTo(x, 0);
-        }
-      });
+    const elPanzoom = document.getElementById("panzoom");
+    if (!elPanzoom) {
+      throw new Error("Panzoom element was not found.");
     }
-  }, [elPanzoom]);
+
+    panzoomInstance = panzoom(elPanzoom, {
+      zoomDoubleClickSpeed: 1,
+      smoothScroll: false,
+      maxZoom: 1,
+      minZoom: 1,
+      beforeWheel: () => true,
+      beforeMouseDown: (e) => {
+        var shouldIgnore = !e.ctrlKey;
+        return shouldIgnore;
+      },
+      filterKey: () => true,
+    });
+
+    panzoomInstance.on("pan", (e) => {
+      const offSetCanvas = map.width - window.innerWidth + 32 - 20;
+      const maxPanX = offSetCanvas < 0 ? 0 : offSetCanvas * -1;
+      const maxPanY = (map.height - 500) * -1;
+
+      const { x, y } = e.getTransform();
+
+      offsetMap = { top: y, left: x };
+      if (x < maxPanX) {
+        e.moveTo(maxPanX, y);
+      } else if (x > 0) {
+        e.moveTo(0, y);
+      }
+
+      if (y < maxPanY) {
+        e.moveTo(x, maxPanY);
+      } else if (y > 0) {
+        e.moveTo(x, 0);
+      }
+    });
+  }, []);
 
   useEffect(() => {
-    ctx.current = canvas.current.getContext("2d");
+    canvas = document.getElementById("canvas");
+    ctx = canvas.getContext("2d");
 
-    canvas.current.width = map.width;
-    canvas.current.height = map.height;
-    ctx.current.lineJoin = "round";
-    ctx.current.lineWidth = 2;
-    ctx.current.strokeStyle = map.addColor;
+    if (!canvas || !ctx) {
+      throw new Error("Html canvas tag was not found.");
+    }
+
+    canvas.width = map.width;
+    canvas.height = map.height;
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = map.addColor;
 
     background.onload = () => draw();
   }, [draw]);
@@ -220,11 +239,11 @@ export const TileMap = (props) => {
   useEffect(() => {
     const changeCursor = (e) => {
       if (e.ctrlKey) {
-        canvas.current.style.cursor = "grab";
+        canvas.style.cursor = "grab";
       } else {
-        canvas.current.style.cursor = "default";
+        canvas.style.cursor = "default";
       }
-      isAdding.current = !e.shiftKey;
+      isAdding = !e.shiftKey;
     };
 
     window.addEventListener("keydown", changeCursor);
@@ -236,14 +255,16 @@ export const TileMap = (props) => {
   }, []);
 
   useEffect(() => {
-    const canvasEl = canvas.current;
     const popup = {
       isOpen: false,
-      lastCoord: null,
+      lastCoord: {
+        x: 0,
+        y: 0,
+      },
     };
 
     const handleCallPopup = (e) => {
-      if (e.ctrlKey || e.shiftKey || isMouseDown.current) {
+      if (e.ctrlKey || e.shiftKey || isMouseDown) {
         return;
       }
 
@@ -259,8 +280,8 @@ export const TileMap = (props) => {
 
         const tileNumber = (yCoord - 2) * 40 + xCoord - 1;
 
-        const top = yCoord * 32 + offsetMap.current.top + 20;
-        const left = xCoord * 32 + offsetMap.current.left + 20;
+        const top = yCoord * 32 + offsetMap.top + 20;
+        const left = xCoord * 32 + offsetMap.left + 20;
 
         const hoveredTile =
           layers[2].find((tile) => tile.x === xCoord && tile.y === yCoord) ||
@@ -285,10 +306,11 @@ export const TileMap = (props) => {
       );
 
       if (shouldPaint) {
-        if (isAdding.current) {
+        if (isAdding) {
           if (!layers[2].some((tile) => tile.x === x && tile.y === y)) {
             const tileNumber = (y - 2) * 40 + x - 1;
-            layers[2].push({ tileNumber, x, y, age: selectedColor });
+            const age = selectedColor;
+            layers[2].push({ tileNumber, x, y, age, selectedColor });
           }
         } else {
           const index = layers[2]?.findIndex(
@@ -303,43 +325,40 @@ export const TileMap = (props) => {
     const hover = (x, y) => {
       draw();
 
-      if (isAdding.current) {
-        ctx.current.strokeStyle = map.addColor;
+      if (isAdding) {
+        ctx.strokeStyle = map.addColor;
       } else {
-        ctx.current.strokeStyle = map.removeColor;
+        ctx.strokeStyle = map.removeColor;
       }
 
-      ctx.current.fillStyle = "rgba(226, 224, 224, 0.144)";
-      ctx.current.beginPath();
-      ctx.current.rect(
-        x * map.tileSize,
-        y * map.tileSize,
-        map.tileSize,
-        map.tileSize
-      );
-      ctx.current.stroke();
-      ctx.current.fill();
-      ctx.current.closePath();
+      ctx.fillStyle = "rgba(226, 224, 224, 0.144)";
+      ctx.beginPath();
+      ctx.rect(x * map.tileSize, y * map.tileSize, map.tileSize, map.tileSize);
+      ctx.stroke();
+      ctx.fill();
+      ctx.closePath();
     };
 
     const handleMouseDown = (e) => {
       if (!e.ctrlKey) {
-        const { xCoord, yCoord } = getCoords(e);
-        const shiftKey = e.shiftKey;
-        addTile(xCoord, yCoord, shiftKey);
-        isMouseDown.current = true;
+        const coords = getCoords(e);
+        if (!!coords) {
+          const { xCoord, yCoord } = coords;
+          addTile(xCoord, yCoord);
+          isMouseDown = true;
+        }
       }
 
-      if (e.ctrlKey) canvasEl.style.cursor = "grabbing";
+      if (e.ctrlKey) canvas.style.cursor = "grabbing";
     };
 
     const handleMouseUp = (e) => {
-      isMouseDown.current = false;
-      if (e.ctrlKey) canvasEl.style.cursor = "grab";
+      isMouseDown = false;
+      if (e.ctrlKey) canvas.style.cursor = "grab";
     };
 
     const handleMouseLeave = (e) => {
-      isMouseDown.current = false;
+      isMouseDown = false;
       popup.isOpen = false;
       handleShowPopup.cancel();
       setPopup({ isOpen: popup.isOpen });
@@ -361,7 +380,7 @@ export const TileMap = (props) => {
           handleShowPopup.cancel();
         }
 
-        if (isMouseDown.current) {
+        if (isMouseDown) {
           addTile(xCoord, yCoord);
         }
 
@@ -369,45 +388,47 @@ export const TileMap = (props) => {
       }
     };
 
-    canvasEl.addEventListener("mousedown", handleMouseDown);
+    canvas.addEventListener("mousedown", handleMouseDown);
 
-    canvasEl.addEventListener("mouseup", handleMouseUp);
+    canvas.addEventListener("mouseup", handleMouseUp);
 
-    canvasEl.addEventListener("mouseleave", handleMouseLeave);
+    canvas.addEventListener("mouseleave", handleMouseLeave);
 
-    canvasEl.addEventListener("mousemove", handleShowPopup);
-    canvasEl.addEventListener("mousemove", handleMouseMove);
+    canvas.addEventListener("mousemove", handleShowPopup);
+    canvas.addEventListener("mousemove", handleMouseMove);
 
     return () => {
-      canvasEl.removeEventListener("mousedown", handleMouseDown);
-      canvasEl.removeEventListener("mouseup", handleMouseUp);
-      canvasEl.removeEventListener("mouseleave", handleMouseLeave);
-      canvasEl.removeEventListener("mousemove", handleMouseMove);
+      canvas.removeEventListener("mousedown", handleMouseDown);
+      canvas.removeEventListener("mouseup", handleMouseUp);
+      canvas.removeEventListener("mouseleave", handleMouseLeave);
+      canvas.removeEventListener("mousemove", handleMouseMove);
     };
-  }, [canvas, draw, selectedColor, layers, setPopup]);
+  }, [draw, selectedColor, layers, setPopup]);
 
   return (
     <div style={{ width: "100%", padding: "0 10px" }}>
-      <button onClick={() => panzoomInstance.current?.pause()}>
-        Disable panning
-      </button>
-      <button onClick={() => panzoomInstance.current?.resume()}>
-        Enable panning
-      </button>
+      <Actions>
+        <button onClick={() => panzoomInstance?.pause()}>
+          Disable panning
+        </button>
+        <button onClick={() => panzoomInstance?.resume()}>
+          Enable panning
+        </button>
 
-      <button onClick={() => (isAdding.current = true)}>Add Tile</button>
-      <button onClick={() => (isAdding.current = false)}>Delete Tile</button>
+        <button onClick={() => (isAdding = true)}>Add Tile</button>
+        <button onClick={() => (isAdding = false)}>Delete Tile</button>
+      </Actions>
 
       <Wrapper>
         {children}
-        <Panzoom ref={setElPanzoom}>
+        <Panzoom id="panzoom">
           <canvas
+            id="canvas"
             style={{
               position: "relative",
               display: "block",
               width: "min-content",
             }}
-            ref={canvas}
           ></canvas>
         </Panzoom>
       </Wrapper>
