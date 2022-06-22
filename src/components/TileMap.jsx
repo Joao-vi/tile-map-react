@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 
 import panzoom from "panzoom";
@@ -43,6 +43,7 @@ const map = {
   removeColor: "#ea4b5d",
   selectColor: "#13aa4f",
   alreadyPlantedColor: "#432818",
+  alreadyPlantedColor1: "#3f26161d",
 };
 
 const background = new Image();
@@ -77,6 +78,7 @@ let isAdding = true;
 let panzoomInstance;
 
 export const TileMap = (props) => {
+  const [isVisible, setIsVisible] = useState(false);
   const { selectedColor, layers, setPopup, isFetching, userName, children } =
     props;
 
@@ -96,7 +98,7 @@ export const TileMap = (props) => {
       layer.forEach(({ x, y, age, owner }) => {
         paintTile({ x, y, age });
 
-        if (index === 1) {
+        if (index === 1 && isVisible) {
           const isTop = layer?.some(
             (tile) =>
               tile.x === x && tile.y === y - 1 && tile.owner === userName
@@ -118,12 +120,15 @@ export const TileMap = (props) => {
           );
 
           ctx.strokeStyle = map.alreadyPlantedColor;
+          ctx.lineJoin = "round";
+          ctx.fillStyle = map.alreadyPlantedColor1;
 
           if (!isTop && owner === userName) {
             ctx.beginPath();
             ctx.rect(x * map.tileSize, y * map.tileSize, map.tileSize, 1);
             ctx.stroke();
             ctx.closePath();
+            ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
           }
 
           if (!isLeft && owner === userName) {
@@ -131,6 +136,7 @@ export const TileMap = (props) => {
             ctx.rect(x * map.tileSize, y * map.tileSize, 1, map.tileSize);
             ctx.stroke();
             ctx.closePath();
+            ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
           }
 
           if (!isBottom && owner === userName) {
@@ -138,6 +144,7 @@ export const TileMap = (props) => {
             ctx.rect(x * map.tileSize, (y + 1) * map.tileSize, map.tileSize, 1);
             ctx.stroke();
             ctx.closePath();
+            ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
           }
 
           if (!isRight && owner === userName) {
@@ -150,6 +157,7 @@ export const TileMap = (props) => {
             );
             ctx.stroke();
             ctx.closePath();
+            ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
           }
         }
 
@@ -212,7 +220,7 @@ export const TileMap = (props) => {
         }
       });
     },
-    [userName]
+    [userName, isVisible]
   );
 
   const draw = useCallback(() => {
@@ -488,6 +496,10 @@ export const TileMap = (props) => {
         </button>
         <button onClick={() => panzoomInstance?.resume()}>
           Enable panning
+        </button>
+
+        <button onClick={() => setIsVisible((state) => !state)}>
+          {isVisible ? "Hide" : "Show"}
         </button>
 
         <button onClick={() => (isAdding = true)}>Add Tile</button>
