@@ -58,6 +58,7 @@ const Popup = styled.div`
     }
   }
 `;
+const userName = "Joao";
 
 function App() {
   const [selected, setSelected] = useState(1);
@@ -89,6 +90,7 @@ function App() {
       </Instructions>
 
       <TileMap
+        userName={userName}
         isFetching={isFetching}
         layers={layers}
         selectedColor={selected}
@@ -108,6 +110,11 @@ function App() {
             {!!popup.age && (
               <span>
                 age: <span>{popup.age}</span>
+              </span>
+            )}
+            {!!popup.owner && (
+              <span>
+                owner: <span>{popup.owner}</span>
               </span>
             )}
           </Popup>
