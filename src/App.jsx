@@ -58,6 +58,7 @@ const Popup = styled.div`
     }
   }
 `;
+const userName = "Joao";
 
 let nfts = 10;
 function App() {
@@ -85,7 +86,14 @@ function App() {
             !layers[2].some((tile) => tile.x === x && tile.y === y) &&
             state >= 1
           ) {
-            layers[2].push({ tileNumber, x, y, age, selectedColor });
+            layers[2].push({
+              tileNumber,
+              x,
+              y,
+              age,
+              selectedColor,
+              owner: userName,
+            });
             return state - 1;
           }
           return state;
@@ -121,6 +129,7 @@ function App() {
       </Instructions>
 
       <TileMap
+        userName={userName}
         isFetching={isFetching}
         layers={layers}
         selectedColor={selected}
@@ -141,6 +150,11 @@ function App() {
             {!!popup.age && (
               <span>
                 age: <span>{popup.age}</span>
+              </span>
+            )}
+            {!!popup.owner && (
+              <span>
+                owner: <span>{popup.owner}</span>
               </span>
             )}
           </Popup>

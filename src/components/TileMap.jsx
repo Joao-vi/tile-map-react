@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 
 import panzoom from "panzoom";
@@ -42,6 +42,8 @@ const map = {
   addColor: "#2ee979",
   removeColor: "#ea4b5d",
   selectColor: "#13aa4f",
+  alreadyPlantedColor: "#432818",
+  alreadyPlantedColor1: "#3f26161d",
 };
 
 const background = new Image();
@@ -83,7 +85,9 @@ export const TileMap = (props) => {
     isFetching,
     children,
     onSelectTiles,
+    userName,
   } = props;
+  const [isVisible, setIsVisible] = useState(false);
 
   const generateBackground = useCallback(() => {
     ctx.drawImage(background, 0, 0, map.width, map.height);
@@ -96,64 +100,135 @@ export const TileMap = (props) => {
     ctx.drawImage(currentTree, x * 32, y * 32);
   };
 
-  const generateTiles = useCallback((layer, index) => {
-    layer.forEach(({ x, y, age }) => {
-      paintTile({ x, y, age });
+  const generateTiles = useCallback(
+    (layer, index) => {
+      layer.forEach(({ x, y, age, owner }) => {
+        paintTile({ x, y, age });
 
-      if (index === 2) {
-        const isTop = !layer?.some((tile) => tile.x === x && tile.y === y - 1);
-
-        const isLeft = !layer?.some((tile) => tile.x === x - 1 && tile.y === y);
-
-        const isBottom = !layer?.some(
-          (tile) => tile.x === x && tile.y === y + 1
-        );
-
-        const isRight = !layer?.some(
-          (tile) => tile.x === x + 1 && tile.y === y
-        );
-
-        ctx.strokeStyle = map.selectColor;
-        if (isTop) {
-          ctx.beginPath();
-          ctx.rect(x * map.tileSize, y * map.tileSize, map.tileSize, 1);
-          ctx.stroke();
-          ctx.closePath();
-        }
-
-        if (isLeft) {
-          ctx.beginPath();
-          ctx.rect(x * map.tileSize, y * map.tileSize, 1, map.tileSize);
-          ctx.stroke();
-          ctx.closePath();
-        }
-
-        if (isBottom) {
-          ctx.beginPath();
-          ctx.rect(
-            x * map.tileSize,
-            y * map.tileSize + map.tileSize,
-            map.tileSize,
-            1
+        if (index === 1 && isVisible) {
+          const isTop = layer?.some(
+            (tile) =>
+              tile.x === x && tile.y === y - 1 && tile.owner === userName
           );
-          ctx.stroke();
-          ctx.closePath();
+
+          const isLeft = layer?.some(
+            (tile) =>
+              tile.x === x - 1 && tile.y === y && tile.owner === userName
+          );
+
+          const isBottom = layer?.some(
+            (tile) =>
+              tile.x === x && tile.y === y + 1 && tile.owner === userName
+          );
+
+          const isRight = layer?.some(
+            (tile) =>
+              tile.x === x + 1 && tile.y === y && tile.owner === userName
+          );
+
+          ctx.strokeStyle = map.alreadyPlantedColor;
+          ctx.lineJoin = "round";
+          ctx.fillStyle = map.alreadyPlantedColor1;
+
+          if (!isTop && owner === userName) {
+            ctx.beginPath();
+            ctx.rect(x * map.tileSize, y * map.tileSize, map.tileSize, 1);
+            ctx.stroke();
+            ctx.closePath();
+            ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
+          }
+
+          if (!isLeft && owner === userName) {
+            ctx.beginPath();
+            ctx.rect(x * map.tileSize, y * map.tileSize, 1, map.tileSize);
+            ctx.stroke();
+            ctx.closePath();
+            ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
+          }
+
+          if (!isBottom && owner === userName) {
+            ctx.beginPath();
+            ctx.rect(x * map.tileSize, (y + 1) * map.tileSize, map.tileSize, 1);
+            ctx.stroke();
+            ctx.closePath();
+            ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
+          }
+
+          if (!isRight && owner === userName) {
+            ctx.beginPath();
+            ctx.rect(
+              x * map.tileSize + map.tileSize,
+              y * map.tileSize,
+              1,
+              map.tileSize
+            );
+            ctx.stroke();
+            ctx.closePath();
+            ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
+          }
         }
 
-        if (isRight) {
-          ctx.beginPath();
-          ctx.rect(
-            x * map.tileSize + map.tileSize,
-            y * map.tileSize,
-            1,
-            map.tileSize
+        if (index === 2) {
+          const isTop = !layer?.some(
+            (tile) => tile.x === x && tile.y === y - 1
           );
-          ctx.stroke();
-          ctx.closePath();
+
+          const isLeft = !layer?.some(
+            (tile) => tile.x === x - 1 && tile.y === y
+          );
+
+          const isBottom = !layer?.some(
+            (tile) => tile.x === x && tile.y === y + 1
+          );
+
+          const isRight = !layer?.some(
+            (tile) => tile.x === x + 1 && tile.y === y
+          );
+
+          ctx.strokeStyle = map.selectColor;
+
+          if (isTop) {
+            ctx.beginPath();
+            ctx.rect(x * map.tileSize, y * map.tileSize, map.tileSize, 1);
+            ctx.stroke();
+            ctx.closePath();
+          }
+
+          if (isLeft) {
+            ctx.beginPath();
+            ctx.rect(x * map.tileSize, y * map.tileSize, 1, map.tileSize);
+            ctx.stroke();
+            ctx.closePath();
+          }
+
+          if (isBottom) {
+            ctx.beginPath();
+            ctx.rect(
+              x * map.tileSize,
+              y * map.tileSize + map.tileSize,
+              map.tileSize,
+              1
+            );
+            ctx.stroke();
+            ctx.closePath();
+          }
+
+          if (isRight) {
+            ctx.beginPath();
+            ctx.rect(
+              x * map.tileSize + map.tileSize,
+              y * map.tileSize,
+              1,
+              map.tileSize
+            );
+            ctx.stroke();
+            ctx.closePath();
+          }
         }
-      }
-    });
-  }, []);
+      });
+    },
+    [userName, isVisible]
+  );
 
   const draw = useCallback(() => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -300,6 +375,7 @@ export const TileMap = (props) => {
           left,
           tileNumber: hoveredTile?.tileNumber || tileNumber,
           age: hoveredTile?.age,
+          owner: hoveredTile?.owner,
         });
       } else {
         popup.isOpen = false;
@@ -316,6 +392,7 @@ export const TileMap = (props) => {
         const tileNumber = (y - 2) * 40 + x - 1;
         const age = selectedColor;
         onSelectTiles({ x, y, tileNumber, age }, isAdding);
+
         draw();
       }
     };
@@ -358,9 +435,9 @@ export const TileMap = (props) => {
     const handleMouseLeave = (e) => {
       isMouseDown = false;
       popup.isOpen = false;
-      handleShowPopup.cancel();
-      setPopup({ isOpen: popup.isOpen });
+      setPopup({ isOpen: false });
       draw();
+      handleShowPopup.cancel();
     };
 
     const handleMouseMove = (e) => {
@@ -401,7 +478,7 @@ export const TileMap = (props) => {
       canvas.removeEventListener("mouseleave", handleMouseLeave);
       canvas.removeEventListener("mousemove", handleMouseMove);
     };
-  }, [draw, selectedColor, layers, setPopup, onSelectTiles]);
+  }, [draw, selectedColor, layers, setPopup, userName, onSelectTiles]);
 
   return (
     <div style={{ width: "100%", padding: "0 10px" }}>
@@ -411,6 +488,10 @@ export const TileMap = (props) => {
         </button>
         <button onClick={() => panzoomInstance?.resume()}>
           Enable panning
+        </button>
+
+        <button onClick={() => setIsVisible((state) => !state)}>
+          {isVisible ? "Hide" : "Show"}
         </button>
 
         <button onClick={() => (isAdding = true)}>Add Tile</button>
