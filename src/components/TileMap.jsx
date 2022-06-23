@@ -106,26 +106,22 @@ export const TileMap = (props) => {
       layer.forEach(({ x, y, age, owner }) => {
         paintTile({ x, y, age });
 
+        let isTop = false;
+        let isLeft = false;
+        let isRight = false;
+        let isBottom = false;
+
         if (index === 1 && isVisible) {
-          const isTop = layer?.some(
-            (tile) =>
-              tile.x === x && tile.y === y - 1 && tile.owner === userName
-          );
-
-          const isLeft = layer?.some(
-            (tile) =>
-              tile.x === x - 1 && tile.y === y && tile.owner === userName
-          );
-
-          const isBottom = layer?.some(
-            (tile) =>
-              tile.x === x && tile.y === y + 1 && tile.owner === userName
-          );
-
-          const isRight = layer?.some(
-            (tile) =>
-              tile.x === x + 1 && tile.y === y && tile.owner === userName
-          );
+          layer?.forEach((tile) => {
+            if (tile.x === x && tile.y === y - 1 && tile.owner === userName)
+              isTop = true;
+            if (tile.x === x - 1 && tile.y === y && tile.owner === userName)
+              isLeft = true;
+            if (tile.x === x && tile.y === y + 1 && tile.owner === userName)
+              isBottom = true;
+            if (tile.x === x + 1 && tile.y === y && tile.owner === userName)
+              isRight = true;
+          });
 
           ctx.strokeStyle = map.alreadyPlantedColor;
           ctx.lineJoin = "round";
@@ -136,7 +132,7 @@ export const TileMap = (props) => {
             ctx.rect(x * map.tileSize, y * map.tileSize, map.tileSize, 1);
             ctx.stroke();
             ctx.closePath();
-            ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
+            // ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
           }
 
           if (!isLeft && owner === userName) {
@@ -144,7 +140,7 @@ export const TileMap = (props) => {
             ctx.rect(x * map.tileSize, y * map.tileSize, 1, map.tileSize);
             ctx.stroke();
             ctx.closePath();
-            ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
+            // ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
           }
 
           if (!isBottom && owner === userName) {
@@ -152,7 +148,7 @@ export const TileMap = (props) => {
             ctx.rect(x * map.tileSize, (y + 1) * map.tileSize, map.tileSize, 1);
             ctx.stroke();
             ctx.closePath();
-            ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
+            // ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
           }
 
           if (!isRight && owner === userName) {
@@ -165,7 +161,7 @@ export const TileMap = (props) => {
             );
             ctx.stroke();
             ctx.closePath();
-            ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
+            // ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
           }
 
           return;

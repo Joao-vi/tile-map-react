@@ -99,13 +99,16 @@ function App() {
           return state;
         });
       } else {
-        const index = layers[2]?.findIndex(
-          (tile) => tile.x === x && tile.y === y
-        );
-        if (index !== -1) {
-          layers[2]?.splice(index, 1);
-          setNfts((state) => state + 1);
-        }
+        setNfts((state) => {
+          const index = layers[2]?.findIndex(
+            (tile) => tile.x === x && tile.y === y
+          );
+          if (index !== -1) {
+            layers[2]?.splice(index, 1);
+            return state + 1;
+          }
+          return state;
+        });
       }
     },
     [selected]
