@@ -76,7 +76,14 @@ let isAdding = true;
 let panzoomInstance;
 
 export const TileMap = (props) => {
-  const { selectedColor, layers, setPopup, isFetching, children } = props;
+  const {
+    selectedColor,
+    layers,
+    setPopup,
+    isFetching,
+    children,
+    onSelectTiles,
+  } = props;
 
   const generateBackground = useCallback(() => {
     ctx.drawImage(background, 0, 0, map.width, map.height);
@@ -306,18 +313,9 @@ export const TileMap = (props) => {
       );
 
       if (shouldPaint) {
-        if (isAdding) {
-          if (!layers[2].some((tile) => tile.x === x && tile.y === y)) {
-            const tileNumber = (y - 2) * 40 + x - 1;
-            const age = selectedColor;
-            layers[2].push({ tileNumber, x, y, age, selectedColor });
-          }
-        } else {
-          const index = layers[2]?.findIndex(
-            (tile) => tile.x === x && tile.y === y
-          );
-          index !== -1 && layers[2]?.splice(index, 1);
-        }
+        const tileNumber = (y - 2) * 40 + x - 1;
+        const age = selectedColor;
+        onSelectTiles({ x, y, tileNumber, age }, isAdding);
         draw();
       }
     };
@@ -403,7 +401,7 @@ export const TileMap = (props) => {
       canvas.removeEventListener("mouseleave", handleMouseLeave);
       canvas.removeEventListener("mousemove", handleMouseMove);
     };
-  }, [draw, selectedColor, layers, setPopup]);
+  }, [draw, selectedColor, layers, setPopup, onSelectTiles]);
 
   return (
     <div style={{ width: "100%", padding: "0 10px" }}>

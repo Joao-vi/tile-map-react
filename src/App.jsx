@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -59,9 +59,11 @@ const Popup = styled.div`
   }
 `;
 
+let nfts = 10;
 function App() {
   const [selected, setSelected] = useState(1);
   const [isFetching, setIsFecthing] = useState(false);
+  const [nfts, setNfts] = useState(10);
 
   const [popup, setPopup] = useState({
     isOpen: false,
@@ -75,6 +77,32 @@ function App() {
     });
   }, []);
 
+  const handleSelectTiles = useCallback(
+    ({ tileNumber, x, y, age, selectedColor }, isAdding) => {
+      if (isAdding) {
+        setNfts((state) => {
+          if (
+            !layers[2].some((tile) => tile.x === x && tile.y === y) &&
+            state >= 1
+          ) {
+            layers[2].push({ tileNumber, x, y, age, selectedColor });
+            return state - 1;
+          }
+          return state;
+        });
+      } else {
+        const index = layers[2]?.findIndex(
+          (tile) => tile.x === x && tile.y === y
+        );
+        if (index !== -1) {
+          layers[2]?.splice(index, 1);
+          setNfts((state) => state + 1);
+        }
+      }
+    },
+    []
+  );
+
   return (
     <Wrapper>
       <Trees selected={selected} setSelected={setSelected} />
@@ -86,6 +114,10 @@ function App() {
         <span>
           Hold <span className="key">Shift</span> to delete a tile.
         </span>
+
+        <span>
+          Arbequin: <span className="key">{nfts}</span>
+        </span>
       </Instructions>
 
       <TileMap
@@ -93,6 +125,7 @@ function App() {
         layers={layers}
         selectedColor={selected}
         setPopup={setPopup}
+        onSelectTiles={handleSelectTiles}
       >
         {popup.isOpen && (
           <Popup
@@ -118,3 +151,8 @@ function App() {
 }
 
 export default App;
+
+/*
+
+ 
+*/
