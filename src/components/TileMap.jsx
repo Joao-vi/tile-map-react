@@ -79,14 +79,15 @@ let panzoomInstance;
 
 export const TileMap = (props) => {
   const {
-    selectedColor,
     layers,
     setPopup,
     isFetching,
     children,
     onSelectTiles,
     userName,
+    onClearSelecteds,
   } = props;
+
   const [isVisible, setIsVisible] = useState(false);
 
   const generateBackground = useCallback(() => {
@@ -166,6 +167,8 @@ export const TileMap = (props) => {
             ctx.closePath();
             ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
           }
+
+          return;
         }
 
         if (index === 2) {
@@ -254,6 +257,11 @@ export const TileMap = (props) => {
     }
 
     return { xCoord, yCoord };
+  };
+
+  const handleClearSelecteds = () => {
+    onClearSelecteds();
+    draw();
   };
 
   useEffect(() => {
@@ -355,6 +363,7 @@ export const TileMap = (props) => {
 
       if (!!coords) {
         const { xCoord, yCoord } = coords;
+
         popup.lastCoord = {
           x: xCoord,
           y: yCoord,
@@ -362,8 +371,17 @@ export const TileMap = (props) => {
 
         const tileNumber = (yCoord - 2) * 40 + xCoord - 1;
 
-        const top = yCoord * 32 + offsetMap.top + 20;
-        const left = xCoord * 32 + offsetMap.left + 20;
+        let top = yCoord * 32 + offsetMap.top + 36;
+        let left = xCoord * 32 + offsetMap.left - 36;
+
+        if (yCoord >= 26 && xCoord > 6) {
+          top -= 72;
+          left -= 150;
+        }
+        if (yCoord >= 26 && xCoord <= 6) {
+          top -= 72;
+          left += 72;
+        }
 
         const hoveredTile =
           layers[2].find((tile) => tile.x === xCoord && tile.y === yCoord) ||
@@ -390,8 +408,7 @@ export const TileMap = (props) => {
 
       if (shouldPaint) {
         const tileNumber = (y - 2) * 40 + x - 1;
-        const age = selectedColor;
-        onSelectTiles({ x, y, tileNumber, age }, isAdding);
+        onSelectTiles({ x, y, tileNumber }, isAdding);
 
         draw();
       }
@@ -478,10 +495,15 @@ export const TileMap = (props) => {
       canvas.removeEventListener("mouseleave", handleMouseLeave);
       canvas.removeEventListener("mousemove", handleMouseMove);
     };
-  }, [draw, selectedColor, layers, setPopup, userName, onSelectTiles]);
+  }, [draw, layers, setPopup, userName, onSelectTiles]);
 
   return (
-    <div style={{ width: "100%", padding: "0 10px" }}>
+    <div
+      style={{
+        width: "100%",
+        padding: "0 10px",
+      }}
+    >
       <Actions>
         <button onClick={() => panzoomInstance?.pause()}>
           Disable panning
@@ -496,6 +518,7 @@ export const TileMap = (props) => {
 
         <button onClick={() => (isAdding = true)}>Add Tile</button>
         <button onClick={() => (isAdding = false)}>Delete Tile</button>
+        <button onClick={handleClearSelecteds}>Clear Selecteds</button>
       </Actions>
 
       <Wrapper>

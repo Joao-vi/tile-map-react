@@ -60,7 +60,6 @@ const Popup = styled.div`
 `;
 const userName = "Joao";
 
-let nfts = 10;
 function App() {
   const [selected, setSelected] = useState(1);
   const [isFetching, setIsFecthing] = useState(false);
@@ -79,8 +78,9 @@ function App() {
   }, []);
 
   const handleSelectTiles = useCallback(
-    ({ tileNumber, x, y, age, selectedColor }, isAdding) => {
+    ({ tileNumber, x, y }, isAdding) => {
       if (isAdding) {
+        const age = selected;
         setNfts((state) => {
           if (
             !layers[2].some((tile) => tile.x === x && tile.y === y) &&
@@ -91,7 +91,7 @@ function App() {
               x,
               y,
               age,
-              selectedColor,
+              selected,
               owner: userName,
             });
             return state - 1;
@@ -108,7 +108,7 @@ function App() {
         }
       }
     },
-    []
+    [selected]
   );
 
   return (
@@ -132,9 +132,12 @@ function App() {
         userName={userName}
         isFetching={isFetching}
         layers={layers}
-        selectedColor={selected}
         setPopup={setPopup}
         onSelectTiles={handleSelectTiles}
+        onClearSelecteds={() => {
+          layers[2] = [];
+          setNfts(10);
+        }}
       >
         {popup.isOpen && (
           <Popup
@@ -165,8 +168,3 @@ function App() {
 }
 
 export default App;
-
-/*
-
- 
-*/
