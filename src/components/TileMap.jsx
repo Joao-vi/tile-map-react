@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 
@@ -77,6 +78,13 @@ let offsetMap = {
 let isAdding = true;
 let panzoomInstance;
 
+const isTouchDevice = () => {
+  return (
+    "ontouchstart" in window ||
+    navigator.maxTouchPoints > 0 ||
+    navigator.msMaxTouchPoints > 0
+  );
+};
 export const TileMap = (props) => {
   const {
     layers,
@@ -229,7 +237,7 @@ export const TileMap = (props) => {
     [userName, isVisible]
   );
 
-  const draw = useCallback(() => {
+  const draw = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     layers.forEach((layer, index) => {
@@ -239,7 +247,7 @@ export const TileMap = (props) => {
         generateTiles(layer, index);
       }
     });
-  }, [generateBackground, generateTiles, layers]);
+  };
 
   const getCoords = (e) => {
     const { x, y } = e.target.getBoundingClientRect();
@@ -262,6 +270,7 @@ export const TileMap = (props) => {
 
   useEffect(() => {
     const elPanzoom = document.getElementById("panzoom");
+
     if (!elPanzoom) {
       throw new Error("Panzoom element was not found.");
     }
@@ -316,11 +325,11 @@ export const TileMap = (props) => {
     ctx.strokeStyle = map.addColor;
 
     background.onload = () => draw();
-  }, [draw]);
+  }, []);
 
   useEffect(() => {
     draw();
-  }, [isFetching, draw]);
+  }, [isFetching, isVisible]);
 
   useEffect(() => {
     const changeCursor = (e) => {
@@ -394,6 +403,13 @@ export const TileMap = (props) => {
       } else {
         popup.isOpen = false;
       }
+
+      if (isTouchDevice()) {
+        setTimeout(() => {
+          popup.isOpen = false;
+          setPopup({ isOpen: popup.isOpen });
+        }, 2000);
+      }
     };
     const handleShowPopup = debounce(handleCallPopup, 500);
 
@@ -405,8 +421,6 @@ export const TileMap = (props) => {
       if (shouldPaint) {
         const tileNumber = (y - 2) * 40 + x - 1;
         onSelectTiles({ x, y, tileNumber }, isAdding);
-
-        draw();
       }
     };
 
@@ -438,19 +452,21 @@ export const TileMap = (props) => {
       }
 
       if (e.ctrlKey) canvas.style.cursor = "grabbing";
+      draw();
     };
 
     const handleMouseUp = (e) => {
       isMouseDown = false;
       if (e.ctrlKey) canvas.style.cursor = "grab";
+      draw();
     };
 
     const handleMouseLeave = (e) => {
       isMouseDown = false;
       popup.isOpen = false;
       setPopup({ isOpen: false });
-      draw();
       handleShowPopup.cancel();
+      draw();
     };
 
     const handleMouseMove = (e) => {
@@ -491,7 +507,7 @@ export const TileMap = (props) => {
       canvas.removeEventListener("mouseleave", handleMouseLeave);
       canvas.removeEventListener("mousemove", handleMouseMove);
     };
-  }, [draw, layers, setPopup, userName, onSelectTiles]);
+  }, [onSelectTiles]);
 
   return (
     <div
