@@ -14,7 +14,5 @@ This is a study project, which main goal is to make a Tile Map that is going to 
 
 ## Preview
 
-
-
-https://user-images.githubusercontent.com/83383626/175105021-be80f1a3-d6eb-4ed9-b781-c7caeaaf25ab.mp4
+https://user-images.githubusercontent.com/83383626/177319045-ed5b9d26-48c2-4d0d-a844-7ad1e4df1181.mp4
 
