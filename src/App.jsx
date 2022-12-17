@@ -1,11 +1,11 @@
-import React, { useCallback } from "react";
-import { useEffect, useState } from "react";
-import styled from "styled-components";
+import React, { useCallback } from 'react';
+import { useEffect, useState } from 'react';
+import styled from 'styled-components';
 
-import { Trees } from "./components/Trees";
-import { TileMap } from "./components/TileMap";
+import { Trees } from './components/Trees';
+import { TileMap, isTouchDevice } from './components/TileMap';
 
-import { fetchTiles } from "./fetchTiles";
+import { fetchTiles } from './fetchTiles';
 
 export const Wrapper = styled.main`
   position: relative;
@@ -37,7 +37,8 @@ export const Instructions = styled.div`
 
 let layers = [[], [], []];
 
-const Popup = styled.div`
+const Popup = styled.div(
+  ({ isOpen }) => `
   position: absolute;
 
   color: #e8eddf;
@@ -57,8 +58,28 @@ const Popup = styled.div`
       font-weight: 400;
     }
   }
-`;
-const userName = "Joao";
+  
+  transition: opacity .3s ease-out;
+
+  ${
+    isOpen &&
+    `
+    transform: translateY(0px);
+    opacity: 1;
+
+  `
+  }
+
+  ${
+    !isOpen &&
+    `
+      transform: translateY(10px);
+      opacity: 0;`
+  }
+`
+);
+
+const userName = 'Joao';
 
 function App() {
   const [selected, setSelected] = useState(1);
@@ -82,10 +103,7 @@ function App() {
       if (isAdding) {
         const age = selected;
         setNfts((state) => {
-          if (
-            !layers[2].some((tile) => tile.x === x && tile.y === y) &&
-            state >= 1
-          ) {
+          if (!layers[2].some((tile) => tile.x === x && tile.y === y) && state >= 1) {
             layers[2].push({
               tileNumber,
               x,
@@ -99,9 +117,7 @@ function App() {
           return state;
         });
       } else {
-        const index = layers[2]?.findIndex(
-          (tile) => tile.x === x && tile.y === y
-        );
+        const index = layers[2]?.findIndex((tile) => tile.x === x && tile.y === y);
         if (index !== -1) {
           layers[2]?.splice(index, 1);
           setNfts((state) => state + 1);
@@ -124,7 +140,11 @@ function App() {
         </span>
 
         <span>
-          Arbequin: <span className="key">{nfts}</span>
+          Trees: <span className="key">{nfts}</span>
+        </span>
+
+        <span>
+          Current User: <span className="key">{userName}</span>
         </span>
       </Instructions>
 
@@ -132,36 +152,35 @@ function App() {
         userName={userName}
         isFetching={isFetching}
         layers={layers}
-        setPopup={setPopup}
+        setPopup={(props) => setPopup((state) => ({ ...state, ...props }))}
         onSelectTiles={handleSelectTiles}
         onClearSelecteds={() => {
           layers[2] = [];
           setNfts(10);
         }}
       >
-        {popup.isOpen && (
-          <Popup
-            style={{
-              top: popup.top,
-              left: popup.left,
-            }}
-          >
-            <span>
-              Tile Number: <span>{popup.tileNumber}</span>
-            </span>
+        <Popup
+          isOpen={popup.isOpen}
+          style={{
+            top: popup.top,
+            left: popup.left,
+          }}
+        >
+          <span>
+            Tile Number: <span>{popup.tileNumber}</span>
+          </span>
 
-            {!!popup.age && (
-              <span>
-                age: <span>{popup.age}</span>
-              </span>
-            )}
-            {!!popup.owner && (
-              <span>
-                owner: <span>{popup.owner}</span>
-              </span>
-            )}
-          </Popup>
-        )}
+          {!!popup.age && (
+            <span>
+              age: <span>{popup.age}</span>
+            </span>
+          )}
+          {!!popup.owner && (
+            <span>
+              owner: <span>{popup.owner}</span>
+            </span>
+          )}
+        </Popup>
       </TileMap>
     </Wrapper>
   );

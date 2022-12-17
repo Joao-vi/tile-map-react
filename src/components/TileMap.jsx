@@ -1,9 +1,10 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useCallback, useEffect, useState } from "react";
-import styled from "styled-components";
+import { useCallback, useEffect, useState } from 'react';
+import styled from 'styled-components';
 
-import panzoom from "panzoom";
-import debounce from "lodash/debounce";
+import panzoom from 'panzoom';
+import debounce from 'lodash/debounce';
+import { useRef } from 'react';
 
 const Wrapper = styled.div`
   position: relative;
@@ -28,8 +29,9 @@ const Panzoom = styled.div``;
 const Actions = styled.div`
   width: 100%;
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  justify-items: center;
+  justify-content: center;
 
   > button {
     all: none;
@@ -40,27 +42,27 @@ const map = {
   width: 1408,
   height: 928,
   tileSize: 32,
-  addColor: "#2ee979",
-  removeColor: "#ea4b5d",
-  selectColor: "#13aa4f",
-  alreadyPlantedColor: "#432818",
-  alreadyPlantedColor1: "#3f26161d",
+  addColor: '#2ee979',
+  removeColor: '#ea4b5d',
+  selectColor: '#13aa4f',
+  alreadyPlantedColor: '#432818',
+  alreadyPlantedColor1: '#3f26161d',
 };
 
 const background = new Image();
-background.src = "/assets/test/background.png";
+background.src = '/assets/test/background.png';
 
 const ground = new Image();
-ground.src = "/assets/test/ground.png";
+ground.src = '/assets/test/ground.png';
 
 const tree1 = new Image();
-tree1.src = "/assets/test/tree-age-1.png";
+tree1.src = '/assets/test/tree-age-1.png';
 
 const tree2 = new Image();
-tree2.src = "/assets/test/tree-age-2.png";
+tree2.src = '/assets/test/tree-age-2.png';
 
 const tree3 = new Image();
-tree3.src = "/assets/test/tree-age-3.png";
+tree3.src = '/assets/test/tree-age-3.png';
 
 const tree = {
   1: tree1,
@@ -78,25 +80,15 @@ let offsetMap = {
 let isAdding = true;
 let panzoomInstance;
 
-const isTouchDevice = () => {
-  return (
-    "ontouchstart" in window ||
-    navigator.maxTouchPoints > 0 ||
-    navigator.msMaxTouchPoints > 0
-  );
+export const isTouchDevice = () => {
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
 };
-export const TileMap = (props) => {
-  const {
-    layers,
-    setPopup,
-    isFetching,
-    children,
-    onSelectTiles,
-    userName,
-    onClearSelecteds,
-  } = props;
 
-  const [isVisible, setIsVisible] = useState(false);
+export const TileMap = (props) => {
+  const { layers, setPopup, isFetching, children, onSelectTiles, userName, onClearSelecteds } =
+    props;
+
+  const isVisible = useRef(false);
 
   const generateBackground = useCallback(() => {
     ctx.drawImage(background, 0, 0, map.width, map.height);
@@ -119,20 +111,16 @@ export const TileMap = (props) => {
         let isRight = false;
         let isBottom = false;
 
-        if (index === 1 && isVisible) {
+        if (index === 1 && isVisible.current) {
           layer?.forEach((tile) => {
-            if (tile.x === x && tile.y === y - 1 && tile.owner === userName)
-              isTop = true;
-            if (tile.x === x - 1 && tile.y === y && tile.owner === userName)
-              isLeft = true;
-            if (tile.x === x && tile.y === y + 1 && tile.owner === userName)
-              isBottom = true;
-            if (tile.x === x + 1 && tile.y === y && tile.owner === userName)
-              isRight = true;
+            if (tile.x === x && tile.y === y - 1 && tile.owner === userName) isTop = true;
+            if (tile.x === x - 1 && tile.y === y && tile.owner === userName) isLeft = true;
+            if (tile.x === x && tile.y === y + 1 && tile.owner === userName) isBottom = true;
+            if (tile.x === x + 1 && tile.y === y && tile.owner === userName) isRight = true;
           });
 
           ctx.strokeStyle = map.alreadyPlantedColor;
-          ctx.lineJoin = "round";
+          ctx.lineJoin = 'round';
           ctx.fillStyle = map.alreadyPlantedColor1;
 
           if (!isTop && owner === userName) {
@@ -140,7 +128,6 @@ export const TileMap = (props) => {
             ctx.rect(x * map.tileSize, y * map.tileSize, map.tileSize, 1);
             ctx.stroke();
             ctx.closePath();
-            // ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
           }
 
           if (!isLeft && owner === userName) {
@@ -148,7 +135,6 @@ export const TileMap = (props) => {
             ctx.rect(x * map.tileSize, y * map.tileSize, 1, map.tileSize);
             ctx.stroke();
             ctx.closePath();
-            // ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
           }
 
           if (!isBottom && owner === userName) {
@@ -156,41 +142,26 @@ export const TileMap = (props) => {
             ctx.rect(x * map.tileSize, (y + 1) * map.tileSize, map.tileSize, 1);
             ctx.stroke();
             ctx.closePath();
-            // ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
           }
 
           if (!isRight && owner === userName) {
             ctx.beginPath();
-            ctx.rect(
-              x * map.tileSize + map.tileSize,
-              y * map.tileSize,
-              1,
-              map.tileSize
-            );
+            ctx.rect(x * map.tileSize + map.tileSize, y * map.tileSize, 1, map.tileSize);
             ctx.stroke();
             ctx.closePath();
-            // ctx.fillRect(x * map.tileSize, y * map.tileSize, 32, 32);
           }
 
           return;
         }
 
         if (index === 2) {
-          const isTop = !layer?.some(
-            (tile) => tile.x === x && tile.y === y - 1
-          );
+          const isTop = !layer?.some((tile) => tile.x === x && tile.y === y - 1);
 
-          const isLeft = !layer?.some(
-            (tile) => tile.x === x - 1 && tile.y === y
-          );
+          const isLeft = !layer?.some((tile) => tile.x === x - 1 && tile.y === y);
 
-          const isBottom = !layer?.some(
-            (tile) => tile.x === x && tile.y === y + 1
-          );
+          const isBottom = !layer?.some((tile) => tile.x === x && tile.y === y + 1);
 
-          const isRight = !layer?.some(
-            (tile) => tile.x === x + 1 && tile.y === y
-          );
+          const isRight = !layer?.some((tile) => tile.x === x + 1 && tile.y === y);
 
           ctx.strokeStyle = map.selectColor;
 
@@ -210,24 +181,14 @@ export const TileMap = (props) => {
 
           if (isBottom) {
             ctx.beginPath();
-            ctx.rect(
-              x * map.tileSize,
-              y * map.tileSize + map.tileSize,
-              map.tileSize,
-              1
-            );
+            ctx.rect(x * map.tileSize, y * map.tileSize + map.tileSize, map.tileSize, 1);
             ctx.stroke();
             ctx.closePath();
           }
 
           if (isRight) {
             ctx.beginPath();
-            ctx.rect(
-              x * map.tileSize + map.tileSize,
-              y * map.tileSize,
-              1,
-              map.tileSize
-            );
+            ctx.rect(x * map.tileSize + map.tileSize, y * map.tileSize, 1, map.tileSize);
             ctx.stroke();
             ctx.closePath();
           }
@@ -269,10 +230,10 @@ export const TileMap = (props) => {
   };
 
   useEffect(() => {
-    const elPanzoom = document.getElementById("panzoom");
+    const elPanzoom = document.getElementById('panzoom');
 
     if (!elPanzoom) {
-      throw new Error("Panzoom element was not found.");
+      throw new Error('Panzoom element was not found.');
     }
 
     panzoomInstance = panzoom(elPanzoom, {
@@ -288,7 +249,7 @@ export const TileMap = (props) => {
       filterKey: () => true,
     });
 
-    panzoomInstance.on("pan", (e) => {
+    panzoomInstance.on('pan', (e) => {
       const offSetCanvas = map.width - window.innerWidth + 32 - 20;
       const maxPanX = offSetCanvas < 0 ? 0 : offSetCanvas * -1;
       const maxPanY = (map.height - 500) * -1;
@@ -311,16 +272,16 @@ export const TileMap = (props) => {
   }, []);
 
   useEffect(() => {
-    canvas = document.getElementById("canvas");
-    ctx = canvas.getContext("2d");
+    canvas = document.getElementById('canvas');
+    ctx = canvas.getContext('2d');
 
     if (!canvas || !ctx) {
-      throw new Error("Html canvas tag was not found.");
+      throw new Error('Html canvas tag was not found.');
     }
 
     canvas.width = map.width;
     canvas.height = map.height;
-    ctx.lineJoin = "round";
+    ctx.lineJoin = 'round';
     ctx.lineWidth = 2;
     ctx.strokeStyle = map.addColor;
 
@@ -334,18 +295,18 @@ export const TileMap = (props) => {
   useEffect(() => {
     const changeCursor = (e) => {
       if (e.ctrlKey) {
-        canvas.style.cursor = "grab";
+        canvas.style.cursor = 'grab';
       } else {
-        canvas.style.cursor = "default";
+        canvas.style.cursor = 'default';
       }
       isAdding = !e.shiftKey;
     };
 
-    window.addEventListener("keydown", changeCursor);
-    window.addEventListener("keyup", changeCursor);
+    window.addEventListener('keydown', changeCursor);
+    window.addEventListener('keyup', changeCursor);
     return () => {
-      window.removeEventListener("keydown", changeCursor);
-      window.removeEventListener("keyup", changeCursor);
+      window.removeEventListener('keydown', changeCursor);
+      window.removeEventListener('keyup', changeCursor);
     };
   }, []);
 
@@ -414,9 +375,7 @@ export const TileMap = (props) => {
     const handleShowPopup = debounce(handleCallPopup, 500);
 
     const addTile = (x, y) => {
-      const shouldPaint = !layers[1].some(
-        (tile) => tile.x === x && tile.y === y
-      );
+      const shouldPaint = !layers[1].some((tile) => tile.x === x && tile.y === y);
 
       if (shouldPaint) {
         const tileNumber = (y - 2) * 40 + x - 1;
@@ -433,7 +392,7 @@ export const TileMap = (props) => {
         ctx.strokeStyle = map.removeColor;
       }
 
-      ctx.fillStyle = "rgba(226, 224, 224, 0.144)";
+      ctx.fillStyle = 'rgba(226, 224, 224, 0.144)';
       ctx.beginPath();
       ctx.rect(x * map.tileSize, y * map.tileSize, map.tileSize, map.tileSize);
       ctx.stroke();
@@ -451,13 +410,13 @@ export const TileMap = (props) => {
         }
       }
 
-      if (e.ctrlKey) canvas.style.cursor = "grabbing";
+      if (e.ctrlKey) canvas.style.cursor = 'grabbing';
       draw();
     };
 
     const handleMouseUp = (e) => {
       isMouseDown = false;
-      if (e.ctrlKey) canvas.style.cursor = "grab";
+      if (e.ctrlKey) canvas.style.cursor = 'grab';
       draw();
     };
 
@@ -475,10 +434,7 @@ export const TileMap = (props) => {
       if (!!coord) {
         const { xCoord, yCoord } = coord;
 
-        if (
-          popup.isOpen &&
-          (popup.lastCoord.x !== xCoord || popup.lastCoord.y !== yCoord)
-        ) {
+        if (popup.isOpen && (popup.lastCoord.x !== xCoord || popup.lastCoord.y !== yCoord)) {
           popup.isOpen = false;
           setPopup({ isOpen: popup.isOpen });
           handleShowPopup.cancel();
@@ -492,44 +448,56 @@ export const TileMap = (props) => {
       }
     };
 
-    canvas.addEventListener("mousedown", handleMouseDown);
+    canvas.addEventListener('mousedown', handleMouseDown);
 
-    canvas.addEventListener("mouseup", handleMouseUp);
+    canvas.addEventListener('mouseup', handleMouseUp);
 
-    canvas.addEventListener("mouseleave", handleMouseLeave);
+    canvas.addEventListener('mouseleave', handleMouseLeave);
 
-    canvas.addEventListener("mousemove", handleShowPopup);
-    canvas.addEventListener("mousemove", handleMouseMove);
+    canvas.addEventListener('mousemove', handleShowPopup);
+    canvas.addEventListener('mousemove', handleMouseMove);
 
     return () => {
-      canvas.removeEventListener("mousedown", handleMouseDown);
-      canvas.removeEventListener("mouseup", handleMouseUp);
-      canvas.removeEventListener("mouseleave", handleMouseLeave);
-      canvas.removeEventListener("mousemove", handleMouseMove);
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      canvas.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('mouseleave', handleMouseLeave);
+      canvas.removeEventListener('mousemove', handleMouseMove);
     };
   }, [onSelectTiles]);
 
   return (
     <div
       style={{
-        width: "100%",
-        padding: "0 10px",
+        width: '100%',
+        padding: '0 10px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1rem',
       }}
     >
       <Actions>
-        <button onClick={() => panzoomInstance?.pause()}>
-          Disable panning
-        </button>
-        <button onClick={() => panzoomInstance?.resume()}>
-          Enable panning
-        </button>
+        {isTouchDevice() && (
+          <>
+            <button onClick={() => panzoomInstance?.resume()}>Enable panning</button>
+            <button
+              onClick={() => {
+                panzoomInstance?.pause();
+                isAdding = true;
+              }}
+            >
+              Add Tile
+            </button>
+            <button
+              onClick={() => {
+                panzoomInstance?.pause();
+                isAdding = false;
+              }}
+            >
+              Delete Tile
+            </button>
+          </>
+        )}
 
-        <button onClick={() => setIsVisible((state) => !state)}>
-          {isVisible ? "Hide" : "Show"}
-        </button>
-
-        <button onClick={() => (isAdding = true)}>Add Tile</button>
-        <button onClick={() => (isAdding = false)}>Delete Tile</button>
         <button onClick={handleClearSelecteds}>Clear Selecteds</button>
       </Actions>
 
@@ -539,9 +507,9 @@ export const TileMap = (props) => {
           <canvas
             id="canvas"
             style={{
-              position: "relative",
-              display: "block",
-              width: "min-content",
+              position: 'relative',
+              display: 'block',
+              width: 'min-content',
             }}
           ></canvas>
         </Panzoom>

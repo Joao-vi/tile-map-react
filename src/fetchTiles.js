@@ -1,4 +1,4 @@
-import { generateArray } from "./generateArray";
+import { generateArray } from './generateArray';
 
 function getRandom(min, max) {
   // min and max included
@@ -6,17 +6,17 @@ function getRandom(min, max) {
 }
 
 const owners = {
-  0: "John",
-  1: "Lucas",
-  2: "Gabriel",
-  3: "Fernando",
-  4: "Pedro",
-  5: "Sampaio",
-  6: "Joao",
+  0: 'John',
+  1: 'Lucas',
+  2: 'Gabriel',
+  3: 'Fernando',
+  4: 'Pedro',
+  5: 'Sampaio',
+  6: 'Joao',
 };
 
 export const fetchTiles = async () => {
-  const tiles = generateArray(900).map((tile, index) => {
+  const tiles = generateArray(400).map((tile, index) => {
     const age = getRandom(1, 3);
     return {
       tile: tile,

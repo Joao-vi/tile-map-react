@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled from 'styled-components';
 
 const Wrapper = styled.ul`
   display: flex;
@@ -11,21 +11,22 @@ const Wrapper = styled.ul`
 const Tree = styled.img`
   cursor: pointer;
 
-  width: 32px;
-  height: 32px;
+  width: 50px;
+  height: 50px;
   border-radius: 5px;
+  object-fit: contain;
 
-  transition: all 300ms ease;
+  transition: all 150ms ease;
 `;
 
 const trees = [
-  { src: "/assets/tiles-map/tree-age-1.png", value: 1 },
+  { src: '/assets/tiles-map/tree-age-1.png', value: 1 },
   {
-    src: "/assets/tiles-map/tree-age-2.png",
+    src: '/assets/tiles-map/tree-age-2.png',
     value: 2,
   },
   {
-    src: "/assets/tiles-map/tree-age-3.png",
+    src: '/assets/tiles-map/tree-age-3.png',
     value: 3,
   },
 ];
@@ -38,7 +39,7 @@ export const Trees = (props) => {
         <Tree
           src={src}
           onClick={() => setSelected(value)}
-          style={{ border: selected === value ? "1px solid #eeee" : "" }}
+          style={{ border: selected === value ? '2px solid #e76f51' : '' }}
         />
       ))}
     </Wrapper>
