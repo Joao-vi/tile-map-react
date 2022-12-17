@@ -7,4 +7,18 @@
 body {
   background-color: #181818;
   min-height: 100vh;
+
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+}
+
+button {
+  background: #e76f51;
+  padding: 0.5rem 2rem;
+  border-radius: 5px;
+  border-color: #eee;
+  font-weight: bold;
+  font-family: 'Inter', sans-serif;
+
+  cursor: pointer;
 }

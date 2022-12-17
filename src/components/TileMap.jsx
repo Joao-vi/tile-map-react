@@ -1,13 +1,23 @@
-import { useCallback, useEffect } from "react";
-import { useRef } from "react";
-import styled from "styled-components";
+/* eslint-disable react-hooks/exhaustive-deps */
+import { useCallback, useEffect, useState } from 'react';
+import styled from 'styled-components';
+
+import panzoom from 'panzoom';
+import debounce from 'lodash/debounce';
+import { useRef } from 'react';
 
 const Wrapper = styled.div`
+  position: relative;
+  max-width: 1408px;
   width: 100%;
   height: 500px;
 
-  background-color: #9d9494;
+  margin: 0 auto;
+
+  background-color: #201c1c;
   overflow: hidden;
+
+  border-radius: 10px;
 
   &:focus-visible {
     outline: none;
@@ -16,225 +26,494 @@ const Wrapper = styled.div`
 
 const Panzoom = styled.div``;
 
-const addTileColor = "#16db65";
-const removeTileColor = "#ef233c";
-const padding = 2;
-const tileSize = 32;
+const Actions = styled.div`
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
 
-let layers = [
-  // bg-layer
-  [],
-  // blockchain layer
-  [],
-  // Selected user layer
-  [],
-];
+  > button {
+    all: none;
+  }
+`;
+
+const map = {
+  width: 1408,
+  height: 928,
+  tileSize: 32,
+  addColor: '#2ee979',
+  removeColor: '#ea4b5d',
+  selectColor: '#13aa4f',
+  alreadyPlantedColor: '#432818',
+  alreadyPlantedColor1: '#3f26161d',
+};
+
+const background = new Image();
+background.src = '/assets/test/background.png';
+
+const ground = new Image();
+ground.src = '/assets/test/ground.png';
+
+const tree1 = new Image();
+tree1.src = '/assets/test/tree-age-1.png';
+
+const tree2 = new Image();
+tree2.src = '/assets/test/tree-age-2.png';
+
+const tree3 = new Image();
+tree3.src = '/assets/test/tree-age-3.png';
+
+const tree = {
+  1: tree1,
+  2: tree2,
+  3: tree3,
+};
+
+let canvas;
+let ctx;
+let isMouseDown = false;
+let offsetMap = {
+  top: 0,
+  left: 0,
+};
+let isAdding = true;
+let panzoomInstance;
+
+export const isTouchDevice = () => {
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
+};
 
 export const TileMap = (props) => {
-  const { selectedColor, tiles } = props;
-  const canvas = useRef(null);
-  const ctx = useRef(null);
-  const isMouseDown = useRef(false);
+  const { layers, setPopup, isFetching, children, onSelectTiles, userName, onClearSelecteds } =
+    props;
+
+  const isVisible = useRef(false);
 
   const generateBackground = useCallback(() => {
-    for (let i = 1; i <= 33; i++) {
-      for (let j = 1; j <= 33; j++) {
-        const tileNumber = (i - 1) * 33 + j;
-        if (tileNumber <= 1000) {
-          ctx.current.fillStyle = "#cccccc";
-          ctx.current.fillRect(
-            i * tileSize,
-            j * tileSize,
-            tileSize - padding,
-            tileSize - padding
-          );
-        }
-      }
-    }
+    ctx.drawImage(background, 0, 0, map.width, map.height);
   }, []);
 
   const paintTile = (props) => {
-    const { x = 0, px = 0, y = 0, py = 0, wx = padding, hy = padding } = props;
-    ctx.current.beginPath();
-    ctx.current.fillRect(
-      x * tileSize - px,
-      y * tileSize - py,
-      tileSize - wx,
-      tileSize - hy
-    );
-    ctx.current.closePath();
+    const { x = 0, y = 0, age } = props;
+
+    const currentTree = tree[age];
+    ctx.drawImage(currentTree, x * 32, y * 32);
   };
 
-  const generateTiles = useCallback((layer) => {
-    layer.forEach(({ x, y, color }) => {
-      const hasSibilingX = layer?.some(
-        (tile) => tile.x === x - 1 && tile.y === y
-      );
-      const hasSibilingY = layer?.some(
-        (tile) => tile.y === y - 1 && tile.x === x
-      );
-      ctx.current.fillStyle = color;
-      if (hasSibilingX && hasSibilingY) {
-        paintTile({ x, px: 2, y, py: 2, wx: 0, hy: 0 });
-      } else if (hasSibilingX) {
-        paintTile({ x, px: 2, y, wx: 0 });
-      } else if (hasSibilingY) {
-        paintTile({ x, y, py: 2, hy: 0 });
-      } else {
-        paintTile({ x, y });
-      }
-    });
-  }, []);
+  const generateTiles = useCallback(
+    (layer, index) => {
+      layer.forEach(({ x, y, age, owner }) => {
+        paintTile({ x, y, age });
 
-  const draw = useCallback(() => {
-    ctx.current.clearRect(0, 0, canvas.current.width, canvas.current.height);
+        let isTop = false;
+        let isLeft = false;
+        let isRight = false;
+        let isBottom = false;
+
+        if (index === 1 && isVisible.current) {
+          layer?.forEach((tile) => {
+            if (tile.x === x && tile.y === y - 1 && tile.owner === userName) isTop = true;
+            if (tile.x === x - 1 && tile.y === y && tile.owner === userName) isLeft = true;
+            if (tile.x === x && tile.y === y + 1 && tile.owner === userName) isBottom = true;
+            if (tile.x === x + 1 && tile.y === y && tile.owner === userName) isRight = true;
+          });
+
+          ctx.strokeStyle = map.alreadyPlantedColor;
+          ctx.lineJoin = 'round';
+          ctx.fillStyle = map.alreadyPlantedColor1;
+
+          if (!isTop && owner === userName) {
+            ctx.beginPath();
+            ctx.rect(x * map.tileSize, y * map.tileSize, map.tileSize, 1);
+            ctx.stroke();
+            ctx.closePath();
+          }
+
+          if (!isLeft && owner === userName) {
+            ctx.beginPath();
+            ctx.rect(x * map.tileSize, y * map.tileSize, 1, map.tileSize);
+            ctx.stroke();
+            ctx.closePath();
+          }
+
+          if (!isBottom && owner === userName) {
+            ctx.beginPath();
+            ctx.rect(x * map.tileSize, (y + 1) * map.tileSize, map.tileSize, 1);
+            ctx.stroke();
+            ctx.closePath();
+          }
+
+          if (!isRight && owner === userName) {
+            ctx.beginPath();
+            ctx.rect(x * map.tileSize + map.tileSize, y * map.tileSize, 1, map.tileSize);
+            ctx.stroke();
+            ctx.closePath();
+          }
+
+          return;
+        }
+
+        if (index === 2) {
+          const isTop = !layer?.some((tile) => tile.x === x && tile.y === y - 1);
+
+          const isLeft = !layer?.some((tile) => tile.x === x - 1 && tile.y === y);
+
+          const isBottom = !layer?.some((tile) => tile.x === x && tile.y === y + 1);
+
+          const isRight = !layer?.some((tile) => tile.x === x + 1 && tile.y === y);
+
+          ctx.strokeStyle = map.selectColor;
+
+          if (isTop) {
+            ctx.beginPath();
+            ctx.rect(x * map.tileSize, y * map.tileSize, map.tileSize, 1);
+            ctx.stroke();
+            ctx.closePath();
+          }
+
+          if (isLeft) {
+            ctx.beginPath();
+            ctx.rect(x * map.tileSize, y * map.tileSize, 1, map.tileSize);
+            ctx.stroke();
+            ctx.closePath();
+          }
+
+          if (isBottom) {
+            ctx.beginPath();
+            ctx.rect(x * map.tileSize, y * map.tileSize + map.tileSize, map.tileSize, 1);
+            ctx.stroke();
+            ctx.closePath();
+          }
+
+          if (isRight) {
+            ctx.beginPath();
+            ctx.rect(x * map.tileSize + map.tileSize, y * map.tileSize, 1, map.tileSize);
+            ctx.stroke();
+            ctx.closePath();
+          }
+        }
+      });
+    },
+    [userName, isVisible]
+  );
+
+  const draw = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     layers.forEach((layer, index) => {
       if (index === 0) {
         generateBackground();
       } else {
-        generateTiles(layer);
+        generateTiles(layer, index);
       }
     });
-  }, [generateBackground, generateTiles]);
+  };
 
   const getCoords = (e) => {
     const { x, y } = e.target.getBoundingClientRect();
     const mouseX = e.clientX - x;
     const mouseY = e.clientY - y;
-    const xCoord = Math.floor(mouseX / tileSize);
-    const yCoord = Math.floor(mouseY / tileSize);
+    const xCoord = Math.floor(mouseX / map.tileSize);
+    const yCoord = Math.floor(mouseY / map.tileSize);
 
-    return xCoord <= 0 || yCoord <= 0 || (yCoord > 10 && xCoord >= 31)
-      ? null
-      : [xCoord, yCoord];
+    if (xCoord <= 1 || xCoord >= 42 || yCoord <= 1 || yCoord >= 27) {
+      return null;
+    }
+
+    return { xCoord, yCoord };
+  };
+
+  const handleClearSelecteds = () => {
+    onClearSelecteds();
+    draw();
   };
 
   useEffect(() => {
-    layers[1] = tiles;
-  }, [tiles]);
+    const elPanzoom = document.getElementById('panzoom');
+
+    if (!elPanzoom) {
+      throw new Error('Panzoom element was not found.');
+    }
+
+    panzoomInstance = panzoom(elPanzoom, {
+      zoomDoubleClickSpeed: 1,
+      smoothScroll: false,
+      maxZoom: 1,
+      minZoom: 1,
+      beforeWheel: () => true,
+      beforeMouseDown: (e) => {
+        var shouldIgnore = !e.ctrlKey;
+        return shouldIgnore;
+      },
+      filterKey: () => true,
+    });
+
+    panzoomInstance.on('pan', (e) => {
+      const offSetCanvas = map.width - window.innerWidth + 32 - 20;
+      const maxPanX = offSetCanvas < 0 ? 0 : offSetCanvas * -1;
+      const maxPanY = (map.height - 500) * -1;
+
+      const { x, y } = e.getTransform();
+
+      offsetMap = { top: y, left: x };
+      if (x < maxPanX) {
+        e.moveTo(maxPanX, y);
+      } else if (x > 0) {
+        e.moveTo(0, y);
+      }
+
+      if (y < maxPanY) {
+        e.moveTo(x, maxPanY);
+      } else if (y > 0) {
+        e.moveTo(x, 0);
+      }
+    });
+  }, []);
 
   useEffect(() => {
-    ctx.current = canvas.current.getContext("2d");
+    canvas = document.getElementById('canvas');
+    ctx = canvas.getContext('2d');
 
-    canvas.current.width = 1024;
-    canvas.current.height = 1024;
-    ctx.current.lineJoin = "round";
-    ctx.current.lineWidth = 4;
-    ctx.current.strokeStyle = addTileColor;
+    if (!canvas || !ctx) {
+      throw new Error('Html canvas tag was not found.');
+    }
 
+    canvas.width = map.width;
+    canvas.height = map.height;
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = map.addColor;
+
+    background.onload = () => draw();
+  }, []);
+
+  useEffect(() => {
     draw();
-  }, [draw]);
+  }, [isFetching, isVisible]);
 
   useEffect(() => {
-    const changeCursorColor = (e) => {
-      if (e.shiftKey) {
-        ctx.current.strokeStyle = removeTileColor;
-      } else {
-        ctx.current.strokeStyle = addTileColor;
-      }
-
+    const changeCursor = (e) => {
       if (e.ctrlKey) {
-        canvas.current.style.cursor = "grab";
+        canvas.style.cursor = 'grab';
       } else {
-        canvas.current.style.cursor = "default";
+        canvas.style.cursor = 'default';
       }
+      isAdding = !e.shiftKey;
     };
-    window.addEventListener("keydown", changeCursorColor);
-    window.addEventListener("keyup", changeCursorColor);
 
+    window.addEventListener('keydown', changeCursor);
+    window.addEventListener('keyup', changeCursor);
     return () => {
-      window.removeEventListener("keydown", changeCursorColor);
-      window.removeEventListener("keyup", changeCursorColor);
+      window.removeEventListener('keydown', changeCursor);
+      window.removeEventListener('keyup', changeCursor);
     };
   }, []);
 
   useEffect(() => {
-    const canvasEl = canvas.current;
-    const addTile = (e) => {
-      var coord = getCoords(e);
-      if (!!coord) {
-        const [x, y] = coord;
+    const popup = {
+      isOpen: false,
+      lastCoord: {
+        x: 0,
+        y: 0,
+      },
+    };
 
-        if (e.shiftKey) {
-          const index = layers[2]?.findIndex(
-            (tile) => tile.x === x && tile.y === y
-          );
-          index !== -1 && layers[2]?.splice(index, 1);
-        } else {
-          if (!layers[2].some((tile) => tile.x === x && tile.y === y)) {
-            layers[2].push({ x, y, color: selectedColor });
-          }
+    const handleCallPopup = (e) => {
+      if (e.ctrlKey || e.shiftKey || isMouseDown) {
+        return;
+      }
+
+      popup.isOpen = true;
+      let coords = getCoords(e);
+
+      if (!!coords) {
+        const { xCoord, yCoord } = coords;
+
+        popup.lastCoord = {
+          x: xCoord,
+          y: yCoord,
+        };
+
+        const tileNumber = (yCoord - 2) * 40 + xCoord - 1;
+
+        let top = yCoord * 32 + offsetMap.top + 36;
+        let left = xCoord * 32 + offsetMap.left - 36;
+
+        if (yCoord >= 26 && xCoord > 6) {
+          top -= 72;
+          left -= 150;
         }
-        console.log(layers[2]);
-        draw();
+        if (yCoord >= 26 && xCoord <= 6) {
+          top -= 72;
+          left += 72;
+        }
+
+        const hoveredTile =
+          layers[2].find((tile) => tile.x === xCoord && tile.y === yCoord) ||
+          layers[1].find((tile) => tile.x === xCoord && tile.y === yCoord);
+
+        setPopup({
+          isOpen: popup.isOpen,
+          top,
+          left,
+          tileNumber: hoveredTile?.tileNumber || tileNumber,
+          age: hoveredTile?.age,
+          owner: hoveredTile?.owner,
+        });
+      } else {
+        popup.isOpen = false;
+      }
+
+      if (isTouchDevice()) {
+        setTimeout(() => {
+          popup.isOpen = false;
+          setPopup({ isOpen: popup.isOpen });
+        }, 2000);
+      }
+    };
+    const handleShowPopup = debounce(handleCallPopup, 500);
+
+    const addTile = (x, y) => {
+      const shouldPaint = !layers[1].some((tile) => tile.x === x && tile.y === y);
+
+      if (shouldPaint) {
+        const tileNumber = (y - 2) * 40 + x - 1;
+        onSelectTiles({ x, y, tileNumber }, isAdding);
       }
     };
 
-    const hover = (e) => {
-      const coord = getCoords(e);
+    const hover = (x, y) => {
+      draw();
 
-      if (!!coord) {
-        const [x, y] = coord;
-        draw();
-
-        ctx.current.fillStyle = "rgba(226, 224, 224, 0.2)";
-        ctx.current.beginPath();
-        ctx.current.rect(
-          x * tileSize,
-          y * tileSize,
-          tileSize - padding,
-          tileSize - padding
-        );
-        ctx.current.stroke();
-        ctx.current.fill();
-        ctx.current.closePath();
+      if (isAdding) {
+        ctx.strokeStyle = map.addColor;
+      } else {
+        ctx.strokeStyle = map.removeColor;
       }
+
+      ctx.fillStyle = 'rgba(226, 224, 224, 0.144)';
+      ctx.beginPath();
+      ctx.rect(x * map.tileSize, y * map.tileSize, map.tileSize, map.tileSize);
+      ctx.stroke();
+      ctx.fill();
+      ctx.closePath();
     };
 
     const handleMouseDown = (e) => {
       if (!e.ctrlKey) {
-        addTile(e);
-        isMouseDown.current = true;
+        const coords = getCoords(e);
+        if (!!coords) {
+          const { xCoord, yCoord } = coords;
+          addTile(xCoord, yCoord);
+          isMouseDown = true;
+        }
       }
-      if (e.ctrlKey) canvasEl.style.cursor = "grabbing";
+
+      if (e.ctrlKey) canvas.style.cursor = 'grabbing';
+      draw();
     };
 
     const handleMouseUp = (e) => {
-      isMouseDown.current = false;
-      if (e.ctrlKey) canvasEl.style.cursor = "grab";
+      isMouseDown = false;
+      if (e.ctrlKey) canvas.style.cursor = 'grab';
+      draw();
     };
 
-    const handleMouseLeave = () => (isMouseDown.current = false);
+    const handleMouseLeave = (e) => {
+      isMouseDown = false;
+      popup.isOpen = false;
+      setPopup({ isOpen: false });
+      handleShowPopup.cancel();
+      draw();
+    };
 
     const handleMouseMove = (e) => {
-      if (isMouseDown.current) {
-        addTile(e);
+      var coord = getCoords(e);
+
+      if (!!coord) {
+        const { xCoord, yCoord } = coord;
+
+        if (popup.isOpen && (popup.lastCoord.x !== xCoord || popup.lastCoord.y !== yCoord)) {
+          popup.isOpen = false;
+          setPopup({ isOpen: popup.isOpen });
+          handleShowPopup.cancel();
+        }
+
+        if (isMouseDown) {
+          addTile(xCoord, yCoord);
+        }
+
+        hover(xCoord, yCoord);
       }
-
-      hover(e);
     };
-    canvasEl.addEventListener("mousedown", handleMouseDown);
 
-    canvasEl.addEventListener("mouseup", handleMouseUp);
+    canvas.addEventListener('mousedown', handleMouseDown);
 
-    canvasEl.addEventListener("mouseleave", handleMouseLeave);
+    canvas.addEventListener('mouseup', handleMouseUp);
 
-    canvasEl.addEventListener("mousemove", handleMouseMove);
+    canvas.addEventListener('mouseleave', handleMouseLeave);
+
+    canvas.addEventListener('mousemove', handleShowPopup);
+    canvas.addEventListener('mousemove', handleMouseMove);
 
     return () => {
-      canvasEl.removeEventListener("mousedown", handleMouseDown);
-      canvasEl.removeEventListener("mouseup", handleMouseUp);
-      canvasEl.removeEventListener("mouseleave", handleMouseLeave);
-      canvasEl.removeEventListener("mousemove", handleMouseMove);
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      canvas.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('mouseleave', handleMouseLeave);
+      canvas.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [canvas, draw, selectedColor]);
+  }, [onSelectTiles]);
 
   return (
-    <Wrapper>
-      <Panzoom>
-        <canvas ref={canvas}></canvas>
-      </Panzoom>
-    </Wrapper>
+    <div
+      style={{
+        width: '100%',
+        padding: '0 10px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1rem',
+      }}
+    >
+      <Actions>
+        {isTouchDevice() && (
+          <>
+            <button onClick={() => panzoomInstance?.resume()}>Enable panning</button>
+            <button
+              onClick={() => {
+                panzoomInstance?.pause();
+                isAdding = true;
+              }}
+            >
+              Add Tile
+            </button>
+            <button
+              onClick={() => {
+                panzoomInstance?.pause();
+                isAdding = false;
+              }}
+            >
+              Delete Tile
+            </button>
+          </>
+        )}
+
+        <button onClick={handleClearSelecteds}>Clear Selecteds</button>
+      </Actions>
+
+      <Wrapper>
+        {children}
+        <Panzoom id="panzoom">
+          <canvas
+            id="canvas"
+            style={{
+              position: 'relative',
+              display: 'block',
+              width: 'min-content',
+            }}
+          ></canvas>
+        </Panzoom>
+      </Wrapper>
+    </div>
   );
 };
